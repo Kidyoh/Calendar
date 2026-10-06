@@ -27,7 +27,7 @@ void main() {
         tester.view.devicePixelRatio = 3;
         addTearDown(tester.view.reset);
 
-      final repo = CalendarRepository();
+        final repo = CalendarRepository();
         await tester.runAsync(() async {
           await repo.init(); // no device plugin in tests -> local-only mode
           await repo.createEvent(

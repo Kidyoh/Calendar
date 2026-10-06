@@ -8,6 +8,7 @@ import '../core/dates.dart';
 import '../core/theme.dart';
 import '../models/event_item.dart';
 import '../services/calendar_repository.dart';
+import '../services/notification_service.dart';
 import '../widgets/cal_date_picker.dart';
 import '../widgets/common.dart';
 
@@ -57,6 +58,7 @@ class _EventEditorState extends State<_EventEditor> {
   late final TextEditingController _title;
   late final TextEditingController _location;
   late bool _isReminder;
+  late Repeat _repeat;
   late bool _allDay;
   late DateTime _date;
   late TimeOfDay _from;
@@ -75,6 +77,7 @@ class _EventEditorState extends State<_EventEditor> {
     _title = TextEditingController(text: _e?.title ?? '');
     _location = TextEditingController(text: _e?.location ?? '');
     _isReminder = _e?.isReminder ?? widget.reminder;
+    _repeat = _e?.repeat ?? Repeat.none;
     _allDay = _e?.allDay ?? false;
     final base = _e?.start ?? widget.day ?? repo.selectedDay;
     _date = dateOnly(base);
@@ -125,7 +128,8 @@ class _EventEditorState extends State<_EventEditor> {
 
     String? err;
     if (_isReminder && _e == null) {
-      await repo.addReminder(title, _at(_from));
+      await repo.addReminder(title, _at(_from), repeat: _repeat);
+      await NotificationService.requestPermission();
     } else {
       var start = _allDay ? _date : _at(_from);
       var end = _allDay ? addDays(_date, 1) : _at(_to);
@@ -152,6 +156,7 @@ class _EventEditorState extends State<_EventEditor> {
           allDay: _allDay,
           location: _location.text,
           colorIndex: _color,
+          repeat: _isReminder ? _repeat : null,
         );
       }
     }
@@ -316,6 +321,28 @@ class _EventEditorState extends State<_EventEditor> {
                       ),
                     ],
                   ],
+                ),
+              if (_isReminder)
+                Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.repeat_rounded, size: 22),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: PillToggle(
+                            labels: [t('Once'), t('Daily'), t('Weekly')],
+                            index: _repeat.index,
+                            onChanged: (i) =>
+                                setState(() => _repeat = Repeat.values[i]),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               if (!_isReminder) ...[
                 TextField(

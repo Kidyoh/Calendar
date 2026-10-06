@@ -11,6 +11,7 @@ import '../core/dates.dart';
 import '../core/ethiopian.dart';
 import '../core/theme.dart';
 import '../services/calendar_repository.dart';
+import '../services/notification_service.dart';
 import '../widgets/common.dart';
 import '../widgets/motion.dart';
 import 'home_shell.dart';
@@ -100,6 +101,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     final repo = context.read<CalendarRepository>();
     final nav = Navigator.of(context);
     if (connect) await repo.connectDeviceCalendars();
+    await NotificationService.requestPermission();
     _resumePage = 0;
     await repo.completeOnboarding();
     nav.pushReplacement(

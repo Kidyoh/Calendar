@@ -2,6 +2,9 @@ import '../core/dates.dart';
 
 enum EventSource { device, local }
 
+/// How a reminder repeats.
+enum Repeat { none, daily, weekly }
+
 /// One calendar entry, whether it came from the phone's calendar database
 /// (which is what syncs with Google / iCloud / Outlook accounts) or was
 /// created locally inside this app.
@@ -21,6 +24,7 @@ class EventItem {
     this.colorIndex = 0,
     this.isReminder = false,
     this.done = false,
+    this.repeat = Repeat.none,
   });
 
   final String id;
@@ -37,6 +41,7 @@ class EventItem {
   final int colorIndex;
   final bool isReminder;
   final bool done;
+  final Repeat repeat;
 
   Duration get duration => end.difference(start);
 
@@ -58,6 +63,7 @@ class EventItem {
     String? location,
     int? colorIndex,
     bool? done,
+    Repeat? repeat,
   }) => EventItem(
     id: id,
     title: title ?? this.title,
@@ -73,6 +79,7 @@ class EventItem {
     colorIndex: colorIndex ?? this.colorIndex,
     isReminder: isReminder,
     done: done ?? this.done,
+    repeat: repeat ?? this.repeat,
   );
 
   Map<String, dynamic> toJson() => {
@@ -86,6 +93,7 @@ class EventItem {
     'colorIndex': colorIndex,
     'isReminder': isReminder,
     'done': done,
+    'repeat': repeat.index,
   };
 
   factory EventItem.fromJson(Map<String, dynamic> j) => EventItem(
@@ -99,6 +107,8 @@ class EventItem {
     colorIndex: j['colorIndex'] as int? ?? 0,
     isReminder: j['isReminder'] as bool? ?? false,
     done: j['done'] as bool? ?? false,
+    repeat: Repeat
+        .values[(j['repeat'] as int? ?? 0).clamp(0, Repeat.values.length - 1)],
   );
 }
 

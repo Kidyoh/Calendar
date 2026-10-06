@@ -58,9 +58,12 @@ class WidgetConfigActivity : Activity() {
         val styles = listOf("glass", "dark", "light")
         val styleNames = if (am) listOf("መስታወት", "ጨለማ", "ብሩህ") else listOf("Glass", "Dark", "Light")
 
-        var face = WidgetRenderer.faceOf(this, id, prefs.getString("eth", "0") == "1")
-        var view = WidgetRenderer.viewOf(this, id, kind)
-        var style = WidgetRenderer.styleOf(this, id, kind)
+        // Just tapped "Add to home screen" in the app? Start from that widget's settings.
+        val fromApp = if (prefs.contains("face_$id")) null else WidgetRenderer.pending(this, kind)
+        var face = fromApp?.optInt("face") ?: WidgetRenderer.faceOf(this, id, prefs.getString("eth", "0") == "1")
+        var view = fromApp?.optString("view")?.takeIf { it in kind.views } ?: WidgetRenderer.viewOf(this, id, kind)
+        var style = fromApp?.optString("style")?.takeIf { it == "glass" || it == "dark" || it == "light" }
+            ?: WidgetRenderer.styleOf(this, id, kind)
 
         val dp = resources.displayMetrics.density
         val body = LinearLayout(this).apply {
@@ -110,9 +113,7 @@ class WidgetConfigActivity : Activity() {
             .setTitle(if (am) "ዊጀቱን ያብጁ" else "Customize widget")
             .setView(ScrollView(this).apply { addView(body) })
             .setPositiveButton(if (am) "ተጠናቋል" else "Done") { _, _ ->
-                WidgetRenderer.setFace(this, id, face)
-                WidgetRenderer.setView(this, id, view)
-                WidgetRenderer.setStyle(this, id, style)
+                WidgetRenderer.apply(this, id, kind, face, view, style)
                 WidgetRenderer.update(this, id)
                 setResult(RESULT_OK, Intent().putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, id))
                 finish()

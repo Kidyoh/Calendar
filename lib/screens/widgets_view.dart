@@ -161,6 +161,16 @@ class WidgetsView extends StatelessWidget {
               ),
             const Spacer(),
             IconButton(
+              tooltip: t('Add to home screen'),
+              visualDensity: VisualDensity.compact,
+              icon: const Icon(
+                Icons.add_to_home_screen_rounded,
+                size: 20,
+                color: AppColors.mute,
+              ),
+              onPressed: () => pinToHomeScreen(context, w.type, instance: w),
+            ),
+            IconButton(
               tooltip: t('Customize'),
               visualDensity: VisualDensity.compact,
               icon: const Icon(
@@ -291,10 +301,7 @@ class WidgetsView extends StatelessWidget {
       Wrap(
         spacing: 8,
         runSpacing: 8,
-        children: [
-          for (final k in widgetKinds)
-            _pinButton(context, k.icon, k.name, k.android),
-        ],
+        children: [for (final k in widgetKinds) _pinButton(context, k)],
       ),
     ];
 
@@ -332,29 +339,100 @@ class WidgetsView extends StatelessWidget {
     ),
   );
 
-  Widget _pinButton(
-    BuildContext context,
-    IconData icon,
-    String label,
-    String cls,
-  ) => OutlinedButton.icon(
+  Widget _pinButton(BuildContext context, WidgetKind k) => OutlinedButton.icon(
     style: OutlinedButton.styleFrom(
       foregroundColor: AppColors.ink,
       side: BorderSide(color: AppColors.ink.withValues(alpha: .3)),
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
     ),
-    onPressed: () async {
-      final ok = await WidgetSync.pin(cls);
-      if (!ok && context.mounted) {
-        showSnack(
-          context,
-          t('Long-press your home screen → Widgets → Glass Calendar'),
-        );
-      }
-    },
-    icon: Icon(icon, size: 18),
-    label: Text(label),
+    onPressed: () => pinToHomeScreen(context, k.type),
+    icon: Icon(k.icon, size: 18),
+    label: Text(k.name),
+  );
+}
+
+/// Puts a widget of [type] on the home screen. With [instance], the new
+/// home-screen widget copies its calendar, view and style.
+Future<void> pinToHomeScreen(
+  BuildContext context,
+  String type, {
+  WidgetInstance? instance,
+}) async {
+  final repo = context.read<CalendarRepository>();
+  final kind = kindOf(type);
+  final ok = await WidgetSync.pin(
+    type,
+    face: instance?.face ?? repo.widgetFace,
+    view: instance?.view ?? '',
+    style: instance?.style ?? '',
+  );
+  if (!context.mounted) return;
+  if (ok) {
+    showSnack(
+      context,
+      instance == null
+          ? t('Confirm on your home screen.')
+          : t('Confirm on your home screen. It will look just like this one.'),
+    );
+    return;
+  }
+  // This launcher can't add widgets from apps: show how to do it by hand.
+  // The settings are remembered, so the new widget starts with them.
+  showDialog<void>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      backgroundColor: AppColors.paper,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+      icon: Icon(kind.icon, color: AppColors.ink),
+      title: Text(t('Add from your home screen')),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          for (final (i, step) in [
+            t('Long-press an empty spot on your home screen.'),
+            t('Tap Widgets and find Glass Calendar.'),
+            AppLocale.am
+                ? '“${kind.name}” ን ወደ ገጹ ይጎትቱ።'
+                : 'Drag “${kind.name}” onto the screen.',
+            if (instance != null)
+              t(
+                'It starts with the calendar, view and style you picked here (for the next 10 minutes).',
+              ),
+          ].indexed)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  CircleAvatar(
+                    radius: 11,
+                    backgroundColor: AppColors.ink,
+                    child: Text(
+                      '${i + 1}',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(child: Text(step)),
+                ],
+              ),
+            ),
+        ],
+      ),
+      actions: [
+        FilledButton(
+          style: FilledButton.styleFrom(backgroundColor: AppColors.ink),
+          onPressed: () => Navigator.of(ctx).pop(),
+          child: Text(t('Got it')),
+        ),
+      ],
+    ),
   );
 }
 
@@ -587,6 +665,32 @@ class _CustomizeSheet extends StatelessWidget {
         ),
       ],
       const SizedBox(height: 22),
+      SizedBox(
+        width: double.infinity,
+        child: OutlinedButton.icon(
+          style: OutlinedButton.styleFrom(
+            foregroundColor: AppColors.ink,
+            side: BorderSide(color: AppColors.ink.withValues(alpha: .3)),
+            padding: const EdgeInsets.symmetric(vertical: 15),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(30),
+            ),
+          ),
+          onPressed: () {
+            HapticFeedback.mediumImpact();
+            final parent = Navigator.of(context);
+            final host = parent.context;
+            parent.pop();
+            pinToHomeScreen(host, w.type, instance: w);
+          },
+          icon: const Icon(Icons.add_to_home_screen_rounded),
+          label: Text(
+            t('Add this widget to home screen'),
+            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+          ),
+        ),
+      ),
+      const SizedBox(height: 10),
       SizedBox(
         width: double.infinity,
         child: FilledButton(

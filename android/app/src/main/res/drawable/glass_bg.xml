@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Frosted glass: translucent tinted gradient with a luminous hairline edge. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:angle="315"
+                android:endColor="#6620301A"
+                android:startColor="#55FFFFFF" />
+            <corners android:radius="32dp" />
+            <stroke
+                android:width="1.2dp"
+                android:color="#66FFFFFF" />
+        </shape>
+    </item>
+</layer-list>

@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="glass_widget_desc">Frosted-glass week and next event</string>
+    <string name="island_widget_desc">Black island week strip</string>
+</resources>

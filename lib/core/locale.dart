@@ -118,6 +118,16 @@ const _am = <String, String>{
   'Snooze': 'አቆይ',
   'of today done': 'የዛሬው ተጠናቋል',
   'Repeats': 'ይደገማል',
+  // widget instances
+  'Add widget': 'ዊጅት ጨምር',
+  'Remove': 'አስወግድ',
+  'Widget removed': 'ዊጅቱ ተወግዷል',
+  'Undo': 'መልስ',
+  'Starts on': 'የሚጀምረው በ',
+  'Each widget keeps its own calendar.': 'እያንዳንዱ ዊጅት የራሱ ቀን መቁጠሪያ አለው።',
+  'Glass widget': 'የመስታወት ዊጅት',
+  'Island widget': 'የደሴት ዊጅት',
+  'No widgets yet': 'እስካሁን ዊጅት የለም',
   // calendar faces
   'Islamic': 'የሂጅራ',
   'Orthodox': 'ኦርቶዶክስ',

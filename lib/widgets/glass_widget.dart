@@ -16,11 +16,14 @@ import 'face_pager.dart';
 class GlassWeekWidget extends StatefulWidget {
   const GlassWeekWidget({
     super.key,
+    this.instanceId = 'glass-1',
     required this.onSettings,
     required this.onAddReminder,
     required this.onNewEvent,
   });
 
+  /// Widget instance (each glass widget swipes its own calendar).
+  final String instanceId;
   final VoidCallback onSettings;
   final VoidCallback onAddReminder;
   final VoidCallback onNewEvent;
@@ -65,7 +68,7 @@ class _GlassWeekWidgetState extends State<GlassWeekWidget> {
             ],
           ),
           const SizedBox(height: 18),
-          const FacePager(),
+          FacePager(instanceId: widget.instanceId),
           const SizedBox(height: 10),
           AnimatedSize(
             duration: const Duration(milliseconds: 320),
@@ -163,7 +166,7 @@ class _GlassWeekWidgetState extends State<GlassWeekWidget> {
                 day: addDays(start, i),
                 repo: repo,
                 showLabel: true,
-                face: repo.widgetFace,
+                face: repo.faceOf(widget.instanceId),
               ),
             ),
         ],

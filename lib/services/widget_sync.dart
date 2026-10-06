@@ -127,17 +127,6 @@ class WidgetSync {
     }
   }
 
-  /// Face chosen with ⇄ on the home screen (null when unavailable).
-  static Future<int?> readFace() async {
-    if (kIsWeb) return null;
-    try {
-      final v = await HomeWidget.getWidgetData<String>('face');
-      return v == null ? null : int.tryParse(v);
-    } catch (_) {
-      return null;
-    }
-  }
-
   static Future<bool> pin(String widgetClass) async {
     try {
       await HomeWidget.requestPinWidget(

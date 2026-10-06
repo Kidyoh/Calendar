@@ -17,7 +17,15 @@ IconData faceIcon(CalFace f) => switch (f) {
 /// Orthodox. Wraps around endlessly and stays in sync with the repository so
 /// the island and the home-screen widgets show the same calendar.
 class FacePager extends StatefulWidget {
-  const FacePager({super.key, this.height = 150, this.color = Colors.white});
+  const FacePager({
+    super.key,
+    required this.instanceId,
+    this.height = 150,
+    this.color = Colors.white,
+  });
+
+  /// Which widget instance this pager belongs to (each keeps its own face).
+  final String instanceId;
   final double height;
   final Color color;
 
@@ -34,7 +42,9 @@ class _FacePagerState extends State<FacePager> {
   @override
   void initState() {
     super.initState();
-    _page = _base + context.read<CalendarRepository>().widgetFace.index;
+    _page =
+        _base +
+        context.read<CalendarRepository>().faceOf(widget.instanceId).index;
     _pc = PageController(initialPage: _page);
   }
 
@@ -48,10 +58,10 @@ class _FacePagerState extends State<FacePager> {
   Widget build(BuildContext context) {
     final repo = context.watch<CalendarRepository>();
     // Face changed elsewhere (island swipe, settings): glide to it.
-    if (_page % 4 != repo.widgetFace.index &&
+    if (_page % 4 != repo.faceOf(widget.instanceId).index &&
         _pc.hasClients &&
         !_pc.position.isScrollingNotifier.value) {
-      final delta = (repo.widgetFace.index - _page % 4 + 4) % 4;
+      final delta = (repo.faceOf(widget.instanceId).index - _page % 4 + 4) % 4;
       final target = _page + (delta == 3 ? -1 : delta);
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
@@ -72,7 +82,7 @@ class _FacePagerState extends State<FacePager> {
         onPageChanged: (p) {
           _page = p;
           HapticFeedback.selectionClick();
-          repo.setWidgetFace(CalFace.values[p % 4]);
+          repo.setFaceFor(widget.instanceId, CalFace.values[p % 4]);
         },
         itemBuilder: (context, p) {
           final f = CalFace.values[p % 4];

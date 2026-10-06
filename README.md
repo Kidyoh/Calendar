@@ -51,8 +51,13 @@ Logic and tests: `lib/core/holidays.dart`, `test/holidays_test.dart`.
 Swipe the glass widget (or the island) between **Gregorian · Ethiopian · Islamic (Hijri) ·
 Orthodox**. Each face shows its own month, year and day numbers plus what matters today:
 week number, evangelist year (ዘመነ ሉቃስ), the Hijri date with the next Ramadan/Eid
-countdown, or today's feast, saint and fast with the next major feast. On the Android
-home screen, tap the ⇄ chip to cycle faces.
+countdown, or today's feast, saint and fast with the next major feast.
+
+Every widget is its own instance: add as many glass or island widgets as you like
+(Widgets tab → **Add widget**, or several on the home screen) and each keeps its own
+calendar. On the Android home screen a picker asks which calendar a new widget shows
+(long-press → Reconfigure to change it later on Android 12+), and the ⇄ chip cycles only
+that widget.
 
 ## Reminders & notifications
 

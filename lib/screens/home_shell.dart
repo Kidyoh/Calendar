@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../core/locale.dart';
@@ -85,32 +87,18 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
                         ),
                       ),
                     ),
-                    AnimatedSwitcher(
-                      duration: Motion.fast,
-                      transitionBuilder: (c, a) =>
-                          ScaleTransition(scale: a, child: c),
-                      child: repo.loading
-                          ? const Padding(
-                              key: ValueKey('l'),
-                              padding: EdgeInsets.only(right: 12),
-                              child: SizedBox(
-                                width: 18,
-                                height: 18,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2.2,
-                                  color: AppColors.ink,
-                                ),
-                              ),
-                            )
-                          : const SizedBox.shrink(key: ValueKey('n')),
-                    ),
-                    Pressable(
-                      scale: .88,
-                      child: RoundIconButton(
-                        icon: Icons.tune_rounded,
-                        size: 44,
-                        tooltip: t('Settings'),
-                        onTap: () => showSettingsSheet(context),
+                    // Syncing shows as a quiet ring around the settings
+                    // button: no layout shift, nothing for quick loads.
+                    _SyncRing(
+                      active: repo.loading,
+                      child: Pressable(
+                        scale: .88,
+                        child: RoundIconButton(
+                          icon: Icons.tune_rounded,
+                          size: 44,
+                          tooltip: t('Settings'),
+                          onTap: () => showSettingsSheet(context),
+                        ),
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -157,6 +145,82 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Thin progress ring that fades in around [child] only when loading lasts
+/// longer than [delay], so fast syncs never flash anything.
+class _SyncRing extends StatefulWidget {
+  const _SyncRing({required this.active, required this.child});
+  final bool active;
+  final Widget child;
+  static const delay = Duration(milliseconds: 500);
+
+  @override
+  State<_SyncRing> createState() => _SyncRingState();
+}
+
+class _SyncRingState extends State<_SyncRing> {
+  bool _visible = false;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _sync();
+  }
+
+  @override
+  void didUpdateWidget(_SyncRing old) {
+    super.didUpdateWidget(old);
+    if (old.active != widget.active) _sync();
+  }
+
+  void _sync() {
+    _timer?.cancel();
+    if (widget.active) {
+      _timer = Timer(_SyncRing.delay, () {
+        if (mounted) setState(() => _visible = true);
+      });
+    } else if (_visible) {
+      setState(() => _visible = false);
+    }
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      alignment: Alignment.center,
+      clipBehavior: Clip.none,
+      children: [
+        widget.child,
+        Positioned(
+          left: -3,
+          top: -3,
+          right: -3,
+          bottom: -3,
+          child: IgnorePointer(
+            child: AnimatedOpacity(
+              opacity: _visible ? 1 : 0,
+              duration: Motion.medium,
+              child: _visible
+                  ? const CircularProgressIndicator(
+                      strokeWidth: 2,
+                      strokeCap: StrokeCap.round,
+                      color: AppColors.ink,
+                    )
+                  : const SizedBox.shrink(),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

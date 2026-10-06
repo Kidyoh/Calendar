@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="glass_widget_desc">Frosted-glass week and next event</string>
-    <string name="island_widget_desc">Black island week strip</string>
+    <string name="glass_widget_desc">Calendar: week, month or agenda. Make it taller and it opens into a month.</string>
+    <string name="island_widget_desc">Week strip: a black pill with your week (or month)</string>
+    <string name="date_widget_desc">Date tile: today in Gregorian, Ethiopian, Islamic or Orthodox</string>
+    <string name="progress_widget_desc">Progress: how much of the day, week, month or year is gone</string>
+    <string name="next_widget_desc">Next up: countdown to your next event, or an agenda</string>
+    <string name="feasts_widget_desc">Feasts &amp; fasts: upcoming holidays and today\'s fast</string>
 </resources>

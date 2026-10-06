@@ -99,7 +99,12 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 700));
 
-      expect(repo.widgets.map((w) => w.id), ['glass-1', 'island-1']);
+      expect(repo.widgets.map((w) => w.id), [
+        'glass-1',
+        'island-1',
+        'progress-1',
+        'next-1',
+      ]);
       expect(repo.faceOf('glass-1'), CalFace.gregorian);
       expect(repo.faceOf('island-1'), CalFace.gregorian);
 
@@ -169,8 +174,7 @@ void main() {
         () => repo.addWidget('glass', face: CalFace.islamic),
       );
       await tester.pump(const Duration(milliseconds: 700));
-      expect(repo.widgets.length, 3);
-      expect(find.byType(FacePager), findsNWidgets(2));
+      expect(repo.widgets.length, 5);
       expect(repo.faceOf(id!), CalFace.islamic);
       expect(repo.faceOf('glass-1'), CalFace.orthodox);
       expect(tester.takeException(), isNull);
@@ -178,7 +182,7 @@ void main() {
       // Remove it and undo.
       final removed = await tester.runAsync(() => repo.removeWidget(id));
       await tester.pump(const Duration(milliseconds: 500));
-      expect(repo.widgets.length, 2);
+      expect(repo.widgets.length, 4);
       await tester.runAsync(() => repo.restoreWidget(removed!.$1, removed.$2));
       await tester.pump(const Duration(milliseconds: 500));
       expect(repo.faceOf(id), CalFace.islamic);

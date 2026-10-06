@@ -13,8 +13,13 @@
 A Flutter calendar that combines three design directions:
 
 - **Today / Calendar** (pastel cards): big `06.10 OCT` date, two world clocks, coloured task cards with start / end / duration, and a month switcher with colour-coded day cards, hour columns and `+` slots.
-- **Glass widget** (frosted glassmorphism): Weekly / Monthly toggle, big month + day, week strip with event dots, *Add Reminder* and *New Event* actions.
-- **Island widgets** (black pills): week strip with event count, "Day 67%" hourly dot grid, and a *Next up* countdown card.
+- **Six customizable widgets**: each can be glass, dark or light, and each keeps its own calendar and view.
+  - **Calendar** (frosted glass): Week / Month / Agenda, a big month + day, *Add Reminder* and *New Event*.
+  - **Week strip** (black pill): week or a compact month, with the event count.
+  - **Date tile**: today, big, in any calendar, with holidays.
+  - **Progress**: how much of the day, week, month or year has passed. Month and year follow the widget's calendar, so the Ethiopian year has 13 dots.
+  - **Next up**: a countdown to the next event, or an agenda.
+  - **Feasts & fasts**: today's fast and the next holidays.
 
 ## Ethiopian calendar & Amharic
 
@@ -53,9 +58,9 @@ Orthodox**. Each face shows its own month, year and day numbers plus what matter
 week number, evangelist year (ዘመነ ሉቃስ), the Hijri date with the next Ramadan/Eid
 countdown, or today's feast, saint and fast with the next major feast.
 
-Every widget is its own instance: add as many glass or island widgets as you like
-(Widgets tab → **Add widget**, or several on the home screen) and each keeps its own
-calendar. On the Android home screen a picker asks which calendar a new widget shows
+Every widget is its own instance: add as many widgets as you like
+(Widgets tab → **Add widget**, or several on the home screen). Each keeps its own
+calendar, view and style. Tap ⚙ on a widget to customize it with a live preview. On the Android home screen a picker asks which calendar a new widget shows
 (long-press → Reconfigure to change it later on Android 12+), and the ⇄ chip cycles only
 that widget.
 
@@ -81,7 +86,7 @@ the app still works with local-only events and reminders.
 
 | Platform | Status |
 | --- | --- |
-| Android | `GlassWidgetProvider` (frosted glass) and `IslandWidgetProvider` (black) in `android/.../CalendarWidgets.kt`, fed by `home_widget`. Use *Widgets → Add to home screen* in the app, or long-press the home screen. |
+| Android | Six providers live in `android/.../CalendarWidgets.kt` and are fed by `home_widget`: `GlassWidgetProvider` (calendar), `IslandWidgetProvider` (week strip), `DateWidgetProvider`, `ProgressWidgetProvider`, `NextWidgetProvider` and `FeastsWidgetProvider`. When you add a widget, a picker sets its calendar, view and style (Android 12+ can reconfigure later). The calendar widget's **Auto** view opens up into a month when you resize it taller. Pin widgets from *Widgets → Home screen* in the app, or long-press the home screen. |
 | iOS | Permissions and App Group id are set up (`group.com.kidyoh.glass_calendar`), but a WidgetKit extension target still has to be added in Xcode. |
 
 Android widgets can't blur the wallpaper behind them (a platform limit), so the glass look

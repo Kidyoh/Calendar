@@ -160,3 +160,55 @@ String _otherEth(DateTime d) {
   final e = toEthiopian(d);
   return '${_ethMonth(e.month)} ${e.day}, ${_ethYear(e.year)}';
 }
+
+/// First (Gregorian) day of the month containing [d] in face [f], and the
+/// month's length — month grids in widgets follow their own calendar.
+(DateTime, int) faceMonth(CalFace f, DateTime d) {
+  final day = dateOnly(d);
+  switch (f) {
+    case CalFace.gregorian:
+      return (
+        DateTime(day.year, day.month),
+        DateTime(day.year, day.month + 1, 0).day,
+      );
+    case CalFace.ethiopian || CalFace.orthodox:
+      final e = toEthiopian(day);
+      return (
+        fromEthiopian(e.year, e.month, 1),
+        ethDaysInMonth(e.year, e.month),
+      );
+    case CalFace.islamic:
+      final h = toHijri(day);
+      return (
+        hijriToGregorian(h.year, h.month, 1),
+        hijriMonthLength(h.year, h.month),
+      );
+  }
+}
+
+/// Month start [delta] months away in face [f] (any day → that month's day 1).
+DateTime shiftFaceMonth(CalFace f, DateTime d, int delta) {
+  var (start, len) = faceMonth(f, d);
+  for (var i = 0; i < delta; i++) {
+    start = addDays(start, len);
+    len = faceMonth(f, start).$2;
+  }
+  for (var i = 0; i > delta; i--) {
+    start = faceMonth(f, addDays(start, -1)).$1;
+  }
+  return start;
+}
+
+/// Start and end (exclusive) of the year containing [d] in face [f].
+(DateTime, DateTime) faceYear(CalFace f, DateTime d) {
+  switch (f) {
+    case CalFace.gregorian:
+      return (DateTime(d.year), DateTime(d.year + 1));
+    case CalFace.ethiopian || CalFace.orthodox:
+      final y = toEthiopian(d).year;
+      return (fromEthiopian(y, 1, 1), fromEthiopian(y + 1, 1, 1));
+    case CalFace.islamic:
+      final y = toHijri(d).year;
+      return (hijriToGregorian(y, 1, 1), hijriToGregorian(y + 1, 1, 1));
+  }
+}

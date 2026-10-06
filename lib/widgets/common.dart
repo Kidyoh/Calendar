@@ -105,12 +105,22 @@ class PillToggle extends StatelessWidget {
     required this.index,
     required this.onChanged,
     this.style = PillStyle.solid,
+    this.track,
+    this.thumb,
+    this.text,
+    this.selectedText,
   });
 
   final List<String> labels;
   final int index;
   final ValueChanged<int> onChanged;
   final PillStyle style;
+
+  /// Glass style colours (widget skins); default to white-on-glass.
+  final Color? track;
+  final Color? thumb;
+  final Color? text;
+  final Color? selectedText;
 
   @override
   Widget build(BuildContext context) {
@@ -122,7 +132,9 @@ class PillToggle extends StatelessWidget {
           ? Colors.transparent
           : (sel ? AppColors.ink : Colors.transparent);
       final Color fg = glass
-          ? (sel ? AppColors.ink : Colors.white.withValues(alpha: 0.75))
+          ? (sel
+                ? (selectedText ?? AppColors.ink)
+                : (text ?? Colors.white.withValues(alpha: 0.75)))
           : (sel ? Colors.white : AppColors.ink);
       final pill = GestureDetector(
         behavior: HitTestBehavior.opaque,
@@ -142,12 +154,16 @@ class PillToggle extends StatelessWidget {
                 ? null
                 : Border.all(color: AppColors.ink.withValues(alpha: 0.25)),
           ),
-          child: Text(
-            labels[i],
-            style: TextStyle(
-              color: fg,
-              fontWeight: FontWeight.w600,
-              fontSize: 14,
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              labels[i],
+              maxLines: 1,
+              style: TextStyle(
+                color: fg,
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
+              ),
             ),
           ),
         ),
@@ -164,7 +180,7 @@ class PillToggle extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.14),
+        color: track ?? Colors.white.withValues(alpha: 0.14),
         borderRadius: BorderRadius.circular(40),
       ),
       child: Stack(
@@ -177,9 +193,10 @@ class PillToggle extends StatelessWidget {
               alignment: Alignment(n == 1 ? 0 : -1 + 2 * index / (n - 1), 0),
               child: FractionallySizedBox(
                 widthFactor: 1 / n,
+                heightFactor: 1,
                 child: DecoratedBox(
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: thumb ?? Colors.white,
                     borderRadius: BorderRadius.circular(40),
                     boxShadow: [
                       BoxShadow(

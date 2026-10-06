@@ -69,10 +69,59 @@ void main() {
         await tester.tap(find.text(t('Widgets')));
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 800));
-        expect(find.text(t('Weekly')), findsOneWidget);
-        await tester.tap(find.text(t('Monthly')));
-        await tester.pump(const Duration(milliseconds: 600));
+        expect(find.text(t('Week')), findsWidgets);
+        for (final v in ['Month', 'Agenda', 'Week']) {
+          await tester.tap(find.text(t(v)).first);
+          await tester.pump(const Duration(milliseconds: 600));
+          expect(tester.takeException(), isNull);
+        }
+        expect(repo.widgetById('glass-1')!.view, 'week');
+
+        // Customize sheet: every view and style of the glass widget.
+        await tester.tap(find.byTooltip(t('Customize')).first);
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 700));
+        for (final st in ['Dark', 'Light', 'Glass']) {
+          await tester.tap(find.text(t(st)).last);
+          await tester.pump(const Duration(milliseconds: 500));
+          expect(tester.takeException(), isNull);
+        }
+        await tester.ensureVisible(find.text(t('Done')));
+        await tester.pump(const Duration(milliseconds: 300));
+        await tester.tap(find.text(t('Done')));
+        await tester.pump(const Duration(milliseconds: 700));
+
+        // Add each new kind of widget; its customizer opens straight away.
+        for (final kind in ['Date tile', 'Feasts & fasts']) {
+          await tester.scrollUntilVisible(
+            find.text(t('Add widget')),
+            400,
+            scrollable: find
+                .descendant(
+                  of: find.byType(ListView).first,
+                  matching: find.byType(Scrollable),
+                )
+                .first,
+          );
+          await tester.tap(find.text(t('Add widget')));
+          await tester.pump();
+          await tester.pump(const Duration(milliseconds: 700));
+          await tester.tap(find.text(t(kind)).last);
+          await tester.pump();
+          await tester.pump(const Duration(milliseconds: 900));
+          expect(find.text(t('Customize')), findsWidgets);
+          expect(tester.takeException(), isNull);
+          await tester.ensureVisible(find.text(t('Done')));
+          await tester.pump(const Duration(milliseconds: 300));
+          await tester.tap(find.text(t('Done')));
+          await tester.pump(const Duration(milliseconds: 700));
+        }
+        expect(repo.widgets.map((w) => w.type), contains('feasts'));
+        await tester.drag(find.byType(ListView).first, const Offset(0, -3000));
+        await tester.pump(const Duration(milliseconds: 800));
         expect(tester.takeException(), isNull);
+        await tester.drag(find.byType(ListView).first, const Offset(0, 6000));
+        await tester.pump(const Duration(milliseconds: 800));
 
         await tester.tap(find.byTooltip(t('New event')));
         await tester.pump();

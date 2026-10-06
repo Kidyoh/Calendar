@@ -14,14 +14,51 @@ import '../models/event_item.dart';
 import 'notification_service.dart';
 import 'widget_sync.dart';
 
-/// One widget on the Widgets tab. Each has its own calendar face.
-class WidgetInstance {
-  WidgetInstance(this.id, this.type, this.face);
-  final String id;
-  final String type; // 'glass' | 'island'
-  CalFace face;
+/// Widget types on the Widgets tab (and matching home-screen widgets).
+const widgetTypes = ['glass', 'island', 'date', 'progress', 'next', 'feasts'];
 
-  Map<String, dynamic> toJson() => {'id': id, 'type': type, 'face': face.index};
+/// Views each widget type can switch between (first = default).
+const widgetViews = <String, List<String>>{
+  'glass': ['week', 'month', 'agenda'],
+  'island': ['week', 'month'],
+  'date': ['date'],
+  'progress': ['day', 'week', 'month', 'year'],
+  'next': ['next', 'agenda'],
+  'feasts': ['feasts'],
+};
+
+/// Looks: frosted glass, black island, or light paper.
+const widgetStyles = ['glass', 'dark', 'light'];
+
+String defaultStyleOf(String type) => switch (type) {
+  'glass' || 'date' => 'glass',
+  'feasts' => 'light',
+  _ => 'dark',
+};
+
+/// One widget on the Widgets tab. Each has its own calendar face, view and
+/// style.
+class WidgetInstance {
+  WidgetInstance(this.id, this.type, this.face, {String? view, String? style})
+    : view = (widgetViews[type] ?? const ['week']).contains(view)
+          ? view!
+          : (widgetViews[type] ?? const ['week']).first,
+      style = widgetStyles.contains(style) ? style! : defaultStyleOf(type);
+  final String id;
+  final String type; // see [widgetTypes]
+  CalFace face;
+  String view;
+  String style;
+
+  List<String> get views => widgetViews[type] ?? const ['week'];
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'type': type,
+    'face': face.index,
+    'view': view,
+    'style': style,
+  };
   factory WidgetInstance.fromJson(Map<String, dynamic> j) => WidgetInstance(
     j['id'] as String,
     j['type'] as String,
@@ -29,6 +66,8 @@ class WidgetInstance {
       0,
       CalFace.values.length - 1,
     )],
+    view: j['view'] as String?,
+    style: j['style'] as String?,
   );
 }
 
@@ -540,6 +579,8 @@ class CalendarRepository extends ChangeNotifier {
     weekStartsMonday: weekStartsMonday,
     face: widgetFace,
     holidayToday: holidaysFor(DateTime.now()).map((h) => h.name).join(' · '),
+    holidays: holidaysFor,
+    fasts: fastFor,
   );
 
   // ------------------------------------------------------- widget instances
@@ -549,7 +590,19 @@ class CalendarRepository extends ChangeNotifier {
       try {
         widgets = (jsonDecode(raw) as List)
             .map((e) => WidgetInstance.fromJson(e as Map<String, dynamic>))
+            .where((w) => widgetTypes.contains(w.type))
             .toList();
+        // Upgrade from v1: the day-progress and next-up islands used to be
+        // fixed; they are now widgets of their own.
+        if (_prefs?.getBool('widgets_v2') != true) {
+          final f = widgets.isEmpty ? CalFace.gregorian : widgets.first.face;
+          widgets.addAll([
+            WidgetInstance('progress-1', 'progress', f),
+            WidgetInstance('next-1', 'next', f),
+          ]);
+          _prefs?.setBool('widgets_v2', true);
+          _saveWidgets();
+        }
         return;
       } catch (_) {}
     }
@@ -561,7 +614,10 @@ class CalendarRepository extends ChangeNotifier {
     widgets = [
       WidgetInstance('glass-1', 'glass', start),
       WidgetInstance('island-1', 'island', start),
+      WidgetInstance('progress-1', 'progress', start),
+      WidgetInstance('next-1', 'next', start),
     ];
+    _prefs?.setBool('widgets_v2', true);
   }
 
   Future<void> _saveWidgets() async {
@@ -595,13 +651,30 @@ class CalendarRepository extends ChangeNotifier {
     CalFace.values[(faceOf(id).index + dir) % CalFace.values.length],
   );
 
-  Future<String> addWidget(String type, {CalFace? face}) async {
+  /// Customize one widget: its view (week / month / agenda …) and style.
+  Future<void> customizeWidget(String id, {String? view, String? style}) async {
+    final w = widgetById(id);
+    if (w == null) return;
+    if (view != null && w.views.contains(view)) w.view = view;
+    if (style != null && widgetStyles.contains(style)) w.style = style;
+    await _saveWidgets();
+    notifyListeners();
+  }
+
+  Future<String> addWidget(
+    String type, {
+    CalFace? face,
+    String? view,
+    String? style,
+  }) async {
     final n = widgets.where((w) => w.type == type).length + 1;
     var id = '$type-$n';
     while (widgetById(id) != null) {
       id = '$type-${DateTime.now().microsecondsSinceEpoch}';
     }
-    widgets.add(WidgetInstance(id, type, face ?? widgetFace));
+    widgets.add(
+      WidgetInstance(id, type, face ?? widgetFace, view: view, style: style),
+    );
     await _saveWidgets();
     notifyListeners();
     return id;

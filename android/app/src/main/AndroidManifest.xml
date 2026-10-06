@@ -56,13 +56,57 @@
         <receiver
             android:name=".IslandWidgetProvider"
             android:exported="true"
-            android:label="Glass Calendar · Island">
+            android:label="Glass Calendar · Week strip">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/island_widget_info" />
+        </receiver>
+        <receiver
+            android:name=".DateWidgetProvider"
+            android:exported="true"
+            android:label="Glass Calendar · Date">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/date_widget_info" />
+        </receiver>
+        <receiver
+            android:name=".ProgressWidgetProvider"
+            android:exported="true"
+            android:label="Glass Calendar · Progress">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/progress_widget_info" />
+        </receiver>
+        <receiver
+            android:name=".NextWidgetProvider"
+            android:exported="true"
+            android:label="Glass Calendar · Next up">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/next_widget_info" />
+        </receiver>
+        <receiver
+            android:name=".FeastsWidgetProvider"
+            android:exported="true"
+            android:label="Glass Calendar · Feasts &amp; fasts">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/feasts_widget_info" />
         </receiver>
         <!-- flutter_local_notifications: scheduled + action notifications -->
         <receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver" />

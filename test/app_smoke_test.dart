@@ -86,9 +86,22 @@ void main() {
           await tester.pump(const Duration(milliseconds: 500));
           expect(tester.takeException(), isNull);
         }
-        await tester.ensureVisible(find.text(t('Done')));
+        // "Add this widget to home screen": no launcher in tests, so the
+        // how-to dialog shows instead.
+        await tester.ensureVisible(
+          find.text(t('Add this widget to home screen')),
+        );
         await tester.pump(const Duration(milliseconds: 300));
-        await tester.tap(find.text(t('Done')));
+        await tester.tap(find.text(t('Add this widget to home screen')));
+        await tester.pump();
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 50)),
+        );
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 700));
+        expect(find.text(t('Add from your home screen')), findsOneWidget);
+        expect(tester.takeException(), isNull);
+        await tester.tap(find.text(t('Got it')));
         await tester.pump(const Duration(milliseconds: 700));
 
         // Add each new kind of widget; its customizer opens straight away.

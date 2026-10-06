@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter/painting.dart';
+import 'package:flutter/services.dart';
 import 'package:home_widget/home_widget.dart';
 
 import '../core/calendar_faces.dart';
@@ -277,12 +277,28 @@ class WidgetSync {
     }
   }
 
-  static Future<bool> pin(String widgetClass) async {
+  static const _channel = MethodChannel('glass_calendar/widgets');
+
+  /// Asks the launcher to add a widget of [type] to the home screen, set up
+  /// with this [face], [view] and [style] (empty = the widget's defaults).
+  /// Returns true when the launcher's "Add widget" prompt was shown; false
+  /// when this launcher can't add widgets from apps (the settings are still
+  /// remembered, so a widget added from the widget picker starts with them).
+  static Future<bool> pin(
+    String type, {
+    CalFace face = CalFace.gregorian,
+    String view = '',
+    String style = '',
+  }) async {
+    if (kIsWeb) return false;
     try {
-      await HomeWidget.requestPinWidget(
-        qualifiedAndroidName: '$_androidPkg.$widgetClass',
-      );
-      return true;
+      final r = await _channel.invokeMethod<String>('pin', {
+        'type': type,
+        'face': face.index,
+        'view': view,
+        'style': style,
+      });
+      return r == 'requested';
     } catch (_) {
       return false;
     }

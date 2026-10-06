@@ -237,14 +237,6 @@ object WidgetRenderer {
         prefs(context).edit().putString("face_$widgetId", (face.mod(4)).toString()).apply()
     }
 
-    fun setView(context: Context, widgetId: Int, view: String) {
-        prefs(context).edit().putString("view_$widgetId", view).apply()
-    }
-
-    fun setStyle(context: Context, widgetId: Int, style: String) {
-        prefs(context).edit().putString("style_$widgetId", style).apply()
-    }
-
     fun forget(context: Context, ids: IntArray) {
         val e = prefs(context).edit()
         for (id in ids) {
@@ -380,7 +372,37 @@ object WidgetRenderer {
         }
     }
 
+    /** Applies settings sent from the app (pin / "Add to home screen") to one widget. */
+    fun apply(context: Context, widgetId: Int, kind: Kind, face: Int, view: String, style: String) {
+        val e = prefs(context).edit()
+        e.putString("face_$widgetId", face.coerceIn(0, 3).toString())
+        if (view in kind.views) e.putString("view_$widgetId", view)
+        if (style == "glass" || style == "dark" || style == "light") e.putString("style_$widgetId", style)
+        e.remove("pin_pending")
+        e.apply()
+    }
+
+    /**
+     * Settings the app asked for in the last few minutes for this kind of
+     * widget, or null. Used for a widget that was just added.
+     */
+    fun pending(context: Context, kind: Kind): JSONObject? {
+        val raw = prefs(context).getString("pin_pending", null) ?: return null
+        val j = try { JSONObject(raw) } catch (e: Exception) { return null }
+        if (j.optString("kind") != kind.name) return null
+        if (System.currentTimeMillis() - j.optLong("at") > 10 * 60 * 1000) return null
+        return j
+    }
+
+    /** A brand-new widget (no settings yet) picks up pending settings from the app. */
+    private fun claimPending(context: Context, widgetId: Int, kind: Kind) {
+        if (prefs(context).contains("face_$widgetId")) return
+        val j = pending(context, kind) ?: return
+        apply(context, widgetId, kind, j.optInt("face"), j.optString("view"), j.optString("style"))
+    }
+
     fun render(context: Context, widgetId: Int, kind: Kind = kindOf(context, widgetId)): RemoteViews {
+        claimPending(context, widgetId, kind)
         val c = Ctx(context, widgetId, kind)
         var view = viewOf(context, widgetId, kind)
         if (view == "auto") {
@@ -791,6 +813,7 @@ object WidgetRenderer {
 }
 
 const val ACTION_CYCLE_FACE = "com.kidyoh.glass_calendar.CYCLE_FACE"
+const val ACTION_PINNED = "com.kidyoh.glass_calendar.PINNED"
 
 /** One provider per widget kind; each widget instance renders on its own. */
 abstract class CalendarWidgetProvider(private val kind: Kind) : AppWidgetProvider() {
@@ -808,6 +831,16 @@ abstract class CalendarWidgetProvider(private val kind: Kind) : AppWidgetProvide
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action == ACTION_CYCLE_FACE) {
             WidgetRenderer.cycleFace(context, intent.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, AppWidgetManager.INVALID_APPWIDGET_ID))
+        } else if (intent.action == ACTION_PINNED) {
+            // Pinned from the app: copy the in-app widget's calendar, view and style.
+            val id = intent.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, AppWidgetManager.INVALID_APPWIDGET_ID)
+            if (id != AppWidgetManager.INVALID_APPWIDGET_ID) {
+                WidgetRenderer.apply(
+                    context, id, kind, intent.getIntExtra("face", 0),
+                    intent.getStringExtra("view").orEmpty(), intent.getStringExtra("style").orEmpty(),
+                )
+                WidgetRenderer.update(context, id)
+            }
         } else {
             super.onReceive(context, intent)
         }

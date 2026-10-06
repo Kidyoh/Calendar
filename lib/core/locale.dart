@@ -123,6 +123,17 @@ const _am = <String, String>{
   'Remove': 'አስወግድ',
   'Widget removed': 'ዊጅቱ ተወግዷል',
   'Undo': 'መልስ',
+  'Add to home screen': 'ወደ መነሻ ገጽ ጨምር',
+  'Add this widget to home screen': 'ይህን ዊጀት ወደ መነሻ ገጽ ጨምር',
+  'Confirm on your home screen.': 'በመነሻ ገጽዎ ላይ ያረጋግጡ።',
+  'Confirm on your home screen. It will look just like this one.':
+      'በመነሻ ገጽዎ ላይ ያረጋግጡ። ልክ እንደዚህ ይመስላል።',
+  'Add from your home screen': 'ከመነሻ ገጽዎ ይጨምሩ',
+  'Long-press an empty spot on your home screen.': 'በመነሻ ገጽዎ ባዶ ቦታ ላይ ረጅም ይጫኑ።',
+  'Tap Widgets and find Glass Calendar.': 'ዊጀቶችን ይንኩና Glass Calendar ን ያግኙ።',
+  'It starts with the calendar, view and style you picked here (for the next 10 minutes).':
+      'እዚህ በመረጡት ቀን መቁጠሪያ፣ እይታና ዘይቤ ይጀምራል (ለሚቀጥሉት 10 ደቂቃዎች)።',
+  'Got it': 'ገባኝ',
   'Week strip': 'የሳምንት መስመር',
   'A black pill with your week': 'ሳምንትዎ በጥቁር ክኒን',
   'Date tile': 'የቀን ሰሌዳ',

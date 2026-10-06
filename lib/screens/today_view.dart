@@ -11,6 +11,7 @@ import '../core/theme.dart';
 import '../models/event_item.dart';
 import '../services/calendar_repository.dart';
 import '../widgets/common.dart';
+import '../widgets/holiday_views.dart';
 import '../widgets/islands.dart';
 import '../widgets/motion.dart';
 import 'event_editor.dart';
@@ -95,6 +96,23 @@ class TodayView extends StatelessWidget {
                             ],
                           ),
                         ),
+                        for (final (i, h) in repo.holidaysFor(day).indexed)
+                          FadeSlideIn.stagger(
+                            i,
+                            key: ValueKey('hol-${dayKey(day)}-${h.en}'),
+                            child: Padding(
+                              padding: const EdgeInsets.only(bottom: 10),
+                              child: HolidayBanner(holiday: h),
+                            ),
+                          ),
+                        if (repo.fastFor(day) case final fast?)
+                          FadeSlideIn(
+                            key: ValueKey('fast-${dayKey(day)}'),
+                            child: Padding(
+                              padding: const EdgeInsets.only(bottom: 10),
+                              child: FastBanner(fast: fast),
+                            ),
+                          ),
                         if (!repo.hasDeviceAccess && repo.deviceSyncSupported)
                           const _ConnectBanner(),
                         if (events.isEmpty && reminders.isEmpty)
@@ -348,7 +366,11 @@ class _WeekChips extends StatelessWidget {
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w700,
-                                color: sel ? Colors.white : AppColors.ink,
+                                color: sel
+                                    ? Colors.white
+                                    : repo.isDayOff(d)
+                                    ? holidayRed
+                                    : AppColors.ink,
                               ),
                             ),
                             const SizedBox(height: 4),
@@ -357,7 +379,9 @@ class _WeekChips extends StatelessWidget {
                               height: 4,
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
-                                color: repo.hasEvents(d)
+                                color:
+                                    repo.hasEvents(d) ||
+                                        repo.holidaysFor(d).isNotEmpty
                                     ? (sel ? Colors.white : AppColors.ink)
                                     : Colors.transparent,
                               ),
@@ -682,13 +706,14 @@ class _RemindersPill extends StatelessWidget {
   }
 
   void _showReminders(BuildContext context) {
+    final repo = context.read<CalendarRepository>();
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       useSafeArea: true,
       builder: (_) => ChangeNotifierProvider.value(
-        value: context.read<CalendarRepository>(),
+        value: repo,
         child: Consumer<CalendarRepository>(
           builder: (ctx, repo, _) {
             final list = repo.reminders;
@@ -808,7 +833,7 @@ class _ConnectBanner extends StatelessWidget {
               foregroundColor: Colors.black,
             ),
             onPressed: repo.connectDeviceCalendars,
-            child: const Text('Connect'),
+            child: Text(t('Connect')),
           ),
         ],
       ),

@@ -1,5 +1,15 @@
 # Glass Calendar
 
+<p align="center">
+  <img src="assets/banners/glass/readme-hero-1280x640.png" alt="Glass Calendar: your days, beautifully" width="100%">
+</p>
+
+<p align="center">
+  <a href="assets/video/glass-calendar-promo.mp4"><img src="assets/video/poster.jpg" alt="Watch the 45-second promo (with voiceover)" width="70%"></a><br>
+  <sub>▶ <a href="assets/video/glass-calendar-promo.mp4">Watch the 45-second promo</a> · voiceover by Kokoro (Apache-2.0), voice <code>af_heart</code></sub>
+</p>
+
+
 A Flutter calendar that combines three design directions:
 
 - **Today / Calendar** (pastel cards): big `06.10 OCT` date, two world clocks, coloured task cards with start / end / duration, and a month switcher with colour-coded day cards, hour columns and `+` slots.
@@ -18,6 +28,23 @@ A Flutter calendar that combines three design directions:
 - Conversion lives in `lib/core/ethiopian.dart` (Julian Day Number based) and is
   tested against known dates (Enkutatash, Genna, Timket, Meskel, Pagume 6, Adwa).
 - Phones set to Amharic start in Amharic + Ethiopian by default.
+
+## Holidays & fasting
+
+Toggle each group in *Settings → Holidays*:
+
+- **Ethiopian public holidays**: Enkutatash, Meskel, Genna, Timket, Adwa, Labour Day,
+  Patriots' Victory Day, Ginbot 20, Siklet and Fasika.
+- **Orthodox feasts & fasts**: Demera, Ketera, Kana Zegelila, Hidar Tsion, Kulubi Gabriel,
+  Debre Zeit, Hosanna, Erget, Peraklitos, Buhe, Filseta; fasting seasons Abiy Tsom (55 days),
+  Nenewe, Hawaryat, Filseta, Nebiyat (Advent), Gahad, and the Wednesday/Friday fasts
+  (lifted for the 50 days after Fasika). Fasika uses the Julian computus that Bahire Hasab follows.
+- **Islamic holidays**: Mawlid, Eid al-Fitr, Eid al-Adha, from the tabular Hijri calendar;
+  the observed date can move by a day with the moon sighting.
+- **Monthly saints' days** (off by default): Selassie, Mikael, Kidane Mihret, Gabriel,
+  Mariam, Giorgis, Medhane Alem, Bale Wold.
+
+Logic and tests: `lib/core/holidays.dart`, `test/holidays_test.dart`.
 
 ## Sync with other apps
 
@@ -38,6 +65,15 @@ the app still works with local-only events and reminders.
 Android widgets can't blur the wallpaper behind them (a platform limit), so the glass look
 is a translucent tinted gradient with a luminous edge. The in-app glass widget uses a real
 `BackdropFilter` blur.
+
+## Store & social assets
+
+- **Google Play listing** (fastlane `supply` layout, English + Amharic): `fastlane/metadata/android/{en-US,am}/`:
+  feature graphic, icon, 7–8 phone screenshots, title and descriptions.
+- **Banners**, three art directions (glass · pastel · night) × five sizes: `assets/banners/`.
+- **GitHub social preview**: `.github/social-preview.png` (upload under Settings → Social preview).
+- **Promo video** 1920×1080, 45 s, with narration: `assets/video/glass-calendar-promo.mp4`.
+- Sources to regenerate all of it: `promo/`.
 
 ## Run
 

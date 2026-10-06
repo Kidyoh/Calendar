@@ -1,0 +1,121 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Noto+Sans+Ethiopic:wght@500;700;800&display=block" rel="stylesheet">
+<style>
+:root{--ink:#141414;--cream:#E9E8E3;--paper:#F7F6F2;--lav:#BDB4D4;--amb:#E6BA6E;--teal:#9ECBC7;--sage:#C5CE9B;--gold:#E6BA6E}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:transparent}
+body{font-family:'Plus Jakarta Sans','Noto Sans Ethiopic',sans-serif;-webkit-font-smoothing:antialiased}
+.am{font-family:'Noto Sans Ethiopic',sans-serif}
+#b{position:relative;overflow:hidden}
+.bg{position:absolute;inset:0}
+.copy{position:absolute;z-index:3;display:flex;flex-direction:column}
+.brand{display:flex;align-items:center;gap:.55em;font-weight:800;letter-spacing:-.01em}
+.brand img{border-radius:23%;box-shadow:0 .3em .8em rgba(0,0,0,.18)}
+h1{font-weight:700;letter-spacing:-.045em;line-height:.98}
+.sub{font-weight:500;line-height:1.35;opacity:.78}
+.tags{display:flex;flex-wrap:wrap;gap:.45em}
+.tag{padding:.38em .8em;border-radius:99px;font-weight:700;font-size:.92em}
+.cta{display:inline-flex;align-items:center;gap:.5em;padding:.75em 1.3em;border-radius:99px;font-weight:800;align-self:flex-start}
+.phone{position:absolute;z-index:2;border-radius:13%/6%;padding:2.2%;background:#0d0d0d;
+  box-shadow:0 2.5em 5em rgba(0,0,0,.35),0 .6em 1.4em rgba(0,0,0,.2), inset 0 0 0 .18em #2a2a2a}
+.phone img{display:block;width:100%;height:100%;object-fit:cover;object-position:top;border-radius:11%/5%}
+.glass{position:absolute;border-radius:1.6em;backdrop-filter:blur(26px) saturate(1.2);-webkit-backdrop-filter:blur(26px) saturate(1.2);
+  background:linear-gradient(140deg,rgba(255,255,255,.55),rgba(255,255,255,.18) 50%,rgba(30,45,25,.25));
+  box-shadow:inset 0 0 0 2px rgba(255,255,255,.55),0 1.5em 3em rgba(10,30,10,.28)}
+.card{position:absolute;border-radius:1.1em;padding:.9em 1.1em;box-shadow:0 1em 2.2em rgba(0,0,0,.14)}
+.card b{display:block;font-size:1.25em;letter-spacing:-.03em}
+.card span{font-size:.85em;opacity:.85}
+</style></head>
+<body><div id="b"></div>
+<script>
+const q = new URLSearchParams(location.search);
+const W = +q.get('w'), H = +q.get('h'), style = q.get('style');
+const ar = W / H, mode = ar >= 1.6 ? 'wide' : ar > 0.8 ? 'square' : 'tall';
+const b = document.getElementById('b');
+b.style.width = W + 'px'; b.style.height = H + 'px';
+const u = Math.min(W, H) / 100;            // 1u = 1% of the short side
+b.style.fontSize = (mode === 'wide' ? H * 0.032 : u * (mode === 'tall' ? 3.1 : 2.7)) + 'px';
+
+const landscape = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 100" preserveAspectRatio="xMidYMid slice" width="100%" height="100%">
+ <defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#A9C4CF"/><stop offset=".6" stop-color="#DCE8E3"/></linearGradient>
+ <linearGradient id="mid" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7DAE4A"/><stop offset="1" stop-color="#3F6A2C"/></linearGradient>
+ <linearGradient id="near" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#A3D157"/><stop offset="1" stop-color="#4E7F2A"/></linearGradient>
+ <filter id="m" x="-60%" y="-200%" width="220%" height="500%"><feGaussianBlur stdDeviation="4"/></filter></defs>
+ <rect width="160" height="100" fill="url(#sky)"/>
+ <path d="M0 44 Q22 12 44 30 Q66 2 92 24 Q118 6 138 22 Q150 14 160 20 L160 100 L0 100Z" fill="#557A55"/>
+ <ellipse cx="60" cy="34" rx="70" ry="10" fill="#fff" opacity=".8" filter="url(#m)"/>
+ <ellipse cx="130" cy="20" rx="40" ry="8" fill="#fff" opacity=".7" filter="url(#m)"/>
+ <path d="M0 60 Q40 42 80 58 Q120 44 160 56 L160 100 L0 100Z" fill="url(#mid)"/>
+ <path d="M0 78 Q50 64 96 76 Q130 68 160 74 L160 100 L0 100Z" fill="url(#near)"/>
+ <path d="M14 70 C10 84 74 80 58 94 C50 104 110 104 140 118" stroke="#5F686A" stroke-width="6" fill="none" stroke-linecap="round"/>
+ <path d="M14 70 C10 84 74 80 58 94 C50 104 110 104 140 118" stroke="#fff" stroke-opacity=".7" stroke-width=".5" fill="none" stroke-dasharray="2.4 2"/>
+</svg>`;
+const bgUrl = 'data:image/svg+xml;utf8,' + encodeURIComponent(landscape);
+
+const T = {
+  glass:  {bg:`url('${bgUrl}') center/cover`, fg:'#141414', inkOnCta:'#fff', cta:'#141414',
+           phones:['today_en.png','widgets_en.png'], head:'Your days,<br>beautifully.',
+           sub:'Frosted-glass widgets, pastel task cards and an Ethiopian calendar in Amharic.'},
+  pastel: {bg:'var(--cream)', fg:'var(--ink)', inkOnCta:'#fff', cta:'var(--ink)',
+           phones:['today_en.png','today_am_meskel.png'], head:'Plan softly.<br>Live fully.',
+           sub:'Calm pastel cards, world clocks and every holiday and fast built in.'},
+  night:  {bg:'radial-gradient(120% 120% at 80% 10%,#1d1d1d 0%,#070707 60%)', fg:'#fff', inkOnCta:'#141414', cta:'var(--gold)',
+           phones:['islands_en.png','calendar_am.png'], head:'<span class="am">ቀናትዎ፣ በውበት።</span><br>Your days, beautifully.',
+           sub:'Ethiopian & Gregorian calendars · Fasika, Meskel, Abiy Tsom and more.'},
+}[style];
+
+b.innerHTML = `<div class="bg" style="background:${T.bg}"></div>`;
+
+// Phones — geometry per layout
+const P = (src, x, y, w, rot, z = 2) => {
+  const h = w * 2.164;
+  b.insertAdjacentHTML('beforeend', `<div class="phone" style="left:${x}px;top:${y}px;width:${w}px;height:${h}px;transform:rotate(${rot}deg);z-index:${z}"><img src="${src}"></div>`);
+};
+let pw;
+if (mode === 'wide') {
+  pw = H * 0.62;
+  P(T.phones[1], W * 0.80 - pw * 0.15, H * 0.18, pw * 0.92, 7, 1);
+  P(T.phones[0], W * 0.64, H * 0.10, pw, -4, 2);
+} else if (mode === 'square') {
+  pw = W * 0.30;
+  P(T.phones[1], W * 0.56, H * 0.60, pw * 0.92, 8, 1);
+  P(T.phones[0], W * 0.30, H * 0.55, pw, -5, 2);
+} else {
+  pw = W * 0.46;
+  P(T.phones[1], W * 0.48, H * 0.50, pw * 0.92, 8, 1);
+  P(T.phones[0], W * 0.10, H * 0.46, pw, -5, 2);
+}
+
+// Decorative pieces per style
+if (style === 'glass') {
+  const gx = mode === 'wide' ? W * 0.04 : W * 0.06, gy = mode === 'wide' ? H * 0.12 : H * 0.05;
+  const gw = mode === 'wide' ? W * 0.52 : W * 0.88, gh = mode === 'wide' ? H * 0.76 : (mode === 'tall' ? H * 0.37 : H * 0.47);
+  b.insertAdjacentHTML('beforeend', `<div class="glass" style="left:${gx}px;top:${gy}px;width:${gw}px;height:${gh}px;z-index:3"></div>`);
+}
+if (style === 'pastel') {
+  const c = (x, y, bg, fg, t, s, r) => b.insertAdjacentHTML('beforeend',
+    `<div class="card" style="left:${x}px;top:${y}px;background:${bg};color:${fg};transform:rotate(${r}deg);z-index:3"><b>${t}</b><span>${s}</span></div>`);
+  if (mode === 'wide') { c(W*0.50, H*0.66, 'var(--lav)', '#4B4170', 'Design review', '10:00 · 1 h', -6); c(W*0.86, H*0.08, 'var(--amb)', '#5E4310', 'Meskel', 'Public holiday', 8); }
+  else { c(W*0.05, H*0.86, 'var(--lav)', '#4B4170', 'Design review', '10:00 · 1 h', -5); c(W*0.72, H*(mode==='tall'?0.42:0.50), 'var(--amb)', '#5E4310', 'Meskel', 'Public holiday', 7); }
+}
+
+// Copy block
+const pad = mode === 'wide' ? H * 0.12 : W * 0.08;
+const cx = mode === 'wide' ? (style === 'glass' ? W * 0.04 + H * 0.07 : pad) : pad;
+const cy = mode === 'wide' ? (style === 'glass' ? H * 0.12 + H * 0.07 : H * 0.12) : (style === 'glass' ? H * 0.05 + W * 0.06 : W * 0.08);
+const cw = mode === 'wide' ? W * (style === 'glass' ? 0.46 : 0.5) : W * 0.8;
+const fg = T.fg;
+const tagBg = style === 'night' ? 'rgba(255,255,255,.1)' : style === 'glass' ? 'rgba(255,255,255,.3)' : '#fff';
+const tags = ['Glass widgets', 'Ethiopian calendar', 'አማርኛ', 'Holidays & fasts'];
+const hSize = mode === 'wide' ? 3.35 : mode === 'tall' ? 3.6 : 3.2;
+b.insertAdjacentHTML('beforeend', `
+ <div class="copy" style="left:${cx}px;top:${cy}px;width:${cw}px;color:${fg};gap:${mode==='wide'?'.85em':'1em'}">
+   <div class="brand" style="font-size:1.1em"><img src="icon.png" style="width:1.9em;height:1.9em">Glass Calendar</div>
+   <h1 style="font-size:${hSize}em">${T.head}</h1>
+   <div class="sub" style="font-size:1.05em;max-width:${mode==='wide'?'26em':'30em'}">${T.sub}</div>
+   ${(mode === 'wide' && W/H > 2.5) || mode === 'square' ? '' : `<div class="tags">${tags.map(t => `<span class="tag ${/[ሀ-፿]/.test(t)?'am':''}" style="background:${tagBg};color:${fg}">${t}</span>`).join('')}</div>`}
+   <span class="cta" style="background:${T.cta};color:${T.inkOnCta};font-size:.95em;margin-top:.2em">Get it on Android →</span>
+ </div>`);
+document.fonts.ready.then(() => document.body.setAttribute('data-ready', '1'));
+</script></body></html>

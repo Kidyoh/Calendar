@@ -6,6 +6,7 @@ import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../core/dates.dart';
+import '../core/holidays.dart';
 import '../core/locale.dart';
 import '../models/event_item.dart';
 import 'widget_sync.dart';
@@ -51,13 +52,18 @@ class CalendarRepository extends ChangeNotifier {
   String localZoneId = 'UTC';
   bool weekStartsMonday = true;
   bool onboarded = false;
+  bool showNational = true;
+  bool showOrthodox = true;
+  bool showIslamic = true;
+  bool showSaints = false;
   String get language => AppLocale.lang;
   bool get ethiopian => AppLocale.ethiopian;
   String? defaultCalendarId;
 
   bool get hasDeviceAccess => permission == CalendarPermissionStatus.granted;
-  String get secondZoneLabel => zoneChoices[secondZone] ?? secondZone;
-  String get localZoneLabel => localZoneId.split('/').last.replaceAll('_', ' ');
+  String get secondZoneLabel => t(zoneChoices[secondZone] ?? secondZone);
+  String get localZoneLabel =>
+      t(localZoneId.split('/').last.replaceAll('_', ' '));
 
   List<Calendar> get writableCalendars =>
       calendars.where((c) => !c.readOnly).toList();
@@ -82,6 +88,10 @@ class CalendarRepository extends ChangeNotifier {
     secondZone = _prefs!.getString('second_zone') ?? secondZone;
     weekStartsMonday = _prefs!.getBool('week_monday') ?? true;
     onboarded = _prefs!.getBool('onboarded') ?? false;
+    showNational = _prefs!.getBool('hol_national') ?? true;
+    showOrthodox = _prefs!.getBool('hol_orthodox') ?? true;
+    showIslamic = _prefs!.getBool('hol_islamic') ?? true;
+    showSaints = _prefs!.getBool('hol_saints') ?? false;
     // First run on an Amharic phone defaults to Amharic + Ethiopian calendar.
     final amPhone = PlatformDispatcher.instance.locale.languageCode == 'am';
     AppLocale.lang = _prefs!.getString('language') ?? (amPhone ? 'am' : 'en');
@@ -155,7 +165,7 @@ class CalendarRepository extends ChangeNotifier {
     }
     loading = false;
     notifyListeners();
-    WidgetSync.push(allEvents, weekStartsMonday: weekStartsMonday);
+    _pushWidgets();
   }
 
   EventItem _fromDevice(Event e, Calendar? cal) => EventItem(
@@ -355,7 +365,7 @@ class CalendarRepository extends ChangeNotifier {
       jsonEncode(_local.map((e) => e.toJson()).toList()),
     );
     notifyListeners();
-    WidgetSync.push(allEvents, weekStartsMonday: weekStartsMonday);
+    _pushWidgets();
   }
 
   // ------------------------------------------------------------ settings
@@ -363,7 +373,7 @@ class CalendarRepository extends ChangeNotifier {
     AppLocale.lang = lang;
     await _prefs?.setString('language', lang);
     notifyListeners();
-    WidgetSync.push(allEvents, weekStartsMonday: weekStartsMonday);
+    _pushWidgets();
   }
 
   Future<void> setEthiopian(bool v) async {
@@ -371,9 +381,54 @@ class CalendarRepository extends ChangeNotifier {
     focusedMonth = monthStart(selectedDay);
     await _prefs?.setBool('ethiopian', v);
     notifyListeners();
-    WidgetSync.push(allEvents, weekStartsMonday: weekStartsMonday);
+    _pushWidgets();
     if (hasDeviceAccess) reload();
   }
+
+  // ------------------------------------------------------------ holidays
+  /// Holidays on [day] for the categories the user has switched on.
+  List<Holiday> holidaysFor(DateTime day) =>
+      holidaysOn(day, saints: showSaints).where((h) {
+        // Days off (e.g. Fasika, Eid) stay visible under "public holidays"
+        // even if their religious category is switched off.
+        if (h.dayOff && showNational) return true;
+        return switch (h.kind) {
+          HolidayKind.national => showNational,
+          HolidayKind.orthodox => showOrthodox,
+          HolidayKind.islamic => showIslamic,
+          HolidayKind.saint => showSaints,
+        };
+      }).toList();
+
+  /// Orthodox fast on [day] (only when Orthodox feasts & fasts are on).
+  FastDay? fastFor(DateTime day) => showOrthodox ? fastOn(day) : null;
+
+  bool isDayOff(DateTime day) => holidaysFor(day).any((h) => h.dayOff);
+
+  Future<void> setHolidayCategory(HolidayKind kind, bool v) async {
+    switch (kind) {
+      case HolidayKind.national:
+        showNational = v;
+        await _prefs?.setBool('hol_national', v);
+      case HolidayKind.orthodox:
+        showOrthodox = v;
+        await _prefs?.setBool('hol_orthodox', v);
+      case HolidayKind.islamic:
+        showIslamic = v;
+        await _prefs?.setBool('hol_islamic', v);
+      case HolidayKind.saint:
+        showSaints = v;
+        await _prefs?.setBool('hol_saints', v);
+    }
+    notifyListeners();
+    _pushWidgets();
+  }
+
+  void _pushWidgets() => WidgetSync.push(
+    allEvents,
+    weekStartsMonday: weekStartsMonday,
+    holidayToday: holidaysFor(DateTime.now()).map((h) => h.name).join(' · '),
+  );
 
   Future<void> completeOnboarding() async {
     onboarded = true;
@@ -397,6 +452,6 @@ class CalendarRepository extends ChangeNotifier {
     weekStartsMonday = v;
     await _prefs?.setBool('week_monday', v);
     notifyListeners();
-    WidgetSync.push(allEvents, weekStartsMonday: v);
+    _pushWidgets();
   }
 }

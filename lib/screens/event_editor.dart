@@ -19,13 +19,14 @@ Future<void> showEventEditor(
   int? hour,
   bool reminder = false,
 }) {
+  final repo = context.read<CalendarRepository>();
   return showModalBottomSheet(
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
     backgroundColor: Colors.transparent,
     builder: (_) => ChangeNotifierProvider.value(
-      value: context.read<CalendarRepository>(),
+      value: repo,
       child: _EventEditor(
         existing: existing,
         day: day,
@@ -203,7 +204,11 @@ class _EventEditorState extends State<_EventEditor> {
                   Expanded(
                     child: Text(
                       editing
-                          ? t(_isReminder ? 'Edit reminder' : 'Edit event')
+                          ? t(
+                              _isReminder
+                                  ? t('Edit reminder')
+                                  : t('Edit event'),
+                            )
                           : t('New'),
                       style: const TextStyle(
                         fontSize: 26,
@@ -257,7 +262,7 @@ class _EventEditorState extends State<_EventEditor> {
               if (!_isReminder)
                 SwitchListTile.adaptive(
                   contentPadding: EdgeInsets.zero,
-                  title: const Text('All day'),
+                  title: Text(t('All day')),
                   secondary: const Icon(Icons.wb_sunny_outlined),
                   value: _allDay,
                   onChanged: (v) => setState(() => _allDay = v),
@@ -333,9 +338,9 @@ class _EventEditorState extends State<_EventEditor> {
                             isExpanded: true,
                             value: _calendarId,
                             items: [
-                              const DropdownMenuItem(
+                              DropdownMenuItem(
                                 value: null,
-                                child: Text('This app only'),
+                                child: Text(t('This app only')),
                               ),
                               for (final c in repo.writableCalendars)
                                 DropdownMenuItem(

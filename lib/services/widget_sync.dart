@@ -18,6 +18,7 @@ Map<String, String> buildWidgetPayload(
   List<EventItem> events,
   DateTime now, {
   bool weekStartsMonday = true,
+  String holidayToday = '',
 }) {
   final today = dateOnly(now);
   final counts = <String>[];
@@ -53,6 +54,7 @@ Map<String, String> buildWidgetPayload(
     'next_when': nextWhen,
     'week_monday': weekStartsMonday ? '1' : '0',
     'eth': AppLocale.ethiopian ? '1' : '0',
+    'holiday': holidayToday,
     'lang': AppLocale.lang,
     'label_new': '＋ ${t('New Event')}',
     'label_none': t('No upcoming events'),
@@ -67,6 +69,7 @@ class WidgetSync {
   static Future<void> push(
     List<EventItem> events, {
     bool weekStartsMonday = true,
+    String holidayToday = '',
   }) async {
     if (kIsWeb) return;
     try {
@@ -78,6 +81,7 @@ class WidgetSync {
         events,
         DateTime.now(),
         weekStartsMonday: weekStartsMonday,
+        holidayToday: holidayToday,
       );
       for (final e in payload.entries) {
         await HomeWidget.saveWidgetData<String>(e.key, e.value);

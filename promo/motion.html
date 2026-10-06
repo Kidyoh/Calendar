@@ -1,0 +1,318 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Noto+Sans+Ethiopic:wght@500;700;800&display=block" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:1920px;height:1080px;overflow:hidden;background:#000}
+body{font-family:'Plus Jakarta Sans','Noto Sans Ethiopic',sans-serif;-webkit-font-smoothing:antialiased;color:#141414}
+.am{font-family:'Noto Sans Ethiopic',sans-serif}
+.scene{position:absolute;inset:0;overflow:hidden;opacity:0}
+.abs{position:absolute}
+.phone{position:absolute;width:400px;height:866px;border-radius:58px;padding:13px;background:#0d0d0d;
+  box-shadow:0 60px 120px rgba(0,0,0,.38),0 14px 30px rgba(0,0,0,.22),inset 0 0 0 3px #2b2b2b;transform-origin:50% 50%}
+.phone .scr{position:relative;width:100%;height:100%;border-radius:46px;overflow:hidden;background:#E9E8E3}
+.phone img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top}
+.phone .notch{position:absolute;top:22px;left:50%;width:110px;height:30px;margin-left:-55px;border-radius:20px;background:#000;z-index:2}
+.word{display:inline-block;will-change:transform}
+h1{font-weight:700;letter-spacing:-.045em;line-height:1}
+.glass{backdrop-filter:blur(28px) saturate(1.2);-webkit-backdrop-filter:blur(28px) saturate(1.2);
+  background:linear-gradient(140deg,rgba(255,255,255,.58),rgba(255,255,255,.2) 50%,rgba(30,45,25,.22));
+  box-shadow:inset 0 0 0 2px rgba(255,255,255,.55),0 30px 60px rgba(10,30,10,.25)}
+.pill{position:absolute;padding:18px 28px;border-radius:999px;font-weight:700;font-size:30px;white-space:nowrap;
+  box-shadow:0 18px 40px rgba(0,0,0,.25)}
+.pill small{display:block;font-size:19px;font-weight:600;opacity:.75;margin-top:2px}
+#sub{position:absolute;left:50%;bottom:54px;transform:translateX(-50%);max-width:1500px;padding:16px 30px;border-radius:22px;
+  background:rgba(20,20,20,.62);color:#fff;font-size:30px;font-weight:600;line-height:1.3;text-align:center;
+  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);z-index:50}
+</style></head>
+<body>
+<div id="stage"></div>
+<div id="sub"></div>
+<script>
+const TIMING = {
+ "total": 45.536,
+ "scenes": [
+  {
+   "key": "intro",
+   "start": 0.0,
+   "end": 3.764,
+   "vo": 1.2,
+   "voEnd": 2.464,
+   "text": "Meet Glass Calendar."
+  },
+  {
+   "key": "today",
+   "start": 3.764,
+   "end": 12.232,
+   "vo": 4.214,
+   "voEnd": 11.382,
+   "text": "Your days, beautifully. Tasks and meetings live on calm pastel cards, with two world clocks always at a glance."
+  },
+  {
+   "key": "calendar",
+   "start": 12.232,
+   "end": 16.943,
+   "vo": 12.682,
+   "voEnd": 16.093,
+   "text": "Flip through your months, and see every day laid out by the hour."
+  },
+  {
+   "key": "widgets",
+   "start": 16.943,
+   "end": 21.028,
+   "vo": 17.393,
+   "voEnd": 20.178,
+   "text": "Frosted glass widgets float right on your home screen."
+  },
+  {
+   "key": "ethiopia",
+   "start": 21.028,
+   "end": 27.033,
+   "vo": 21.478,
+   "voEnd": 26.183,
+   "text": "It speaks Amharic, and follows the Ethiopian calendar, Pagume included."
+  },
+  {
+   "key": "holidays",
+   "start": 27.033,
+   "end": 34.945,
+   "vo": 27.483,
+   "voEnd": 34.095,
+   "text": "Fasika, Meskel, Timket, and every fast, from Abiy Tsom to the Wednesday and Friday fasts, are built in."
+  },
+  {
+   "key": "sync",
+   "start": 34.945,
+   "end": 39.341,
+   "vo": 35.395,
+   "voEnd": 38.491,
+   "text": "And it stays in sync with Google, iCloud, and Outlook."
+  },
+  {
+   "key": "outro",
+   "start": 39.341,
+   "end": 45.536,
+   "vo": 39.791,
+   "voEnd": 42.336,
+   "text": "Glass Calendar. Your time, beautifully kept."
+  }
+ ]
+};
+const stage = document.getElementById('stage');
+const sub = document.getElementById('sub');
+
+// ---------- easing helpers
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const lerp = (a, b, t) => a + (b - a) * t;
+const eOut = t => 1 - Math.pow(1 - clamp(t), 3);
+const eInOut = t => { t = clamp(t); return t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; };
+const back = t => { t = clamp(t); const c = 1.5; return 1 + (c + 1) * Math.pow(t - 1, 3) + c * Math.pow(t - 1, 2); };
+const seg = (t, a, d) => clamp((t - a) / d);           // 0..1 progress of a sub-animation
+
+// ---------- background art
+const landscape = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 90" preserveAspectRatio="xMidYMid slice" width="100%" height="100%">
+ <defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#A9C4CF"/><stop offset=".6" stop-color="#DCE8E3"/></linearGradient>
+ <linearGradient id="mid" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7DAE4A"/><stop offset="1" stop-color="#3F6A2C"/></linearGradient>
+ <linearGradient id="near" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#A3D157"/><stop offset="1" stop-color="#4E7F2A"/></linearGradient>
+ <filter id="m" x="-60%" y="-200%" width="220%" height="500%"><feGaussianBlur stdDeviation="4"/></filter></defs>
+ <rect width="160" height="90" fill="url(#sky)"/>
+ <path d="M0 40 Q22 10 44 27 Q66 2 92 22 Q118 6 138 20 Q150 13 160 18 L160 90 L0 90Z" fill="#557A55"/>
+ <ellipse cx="60" cy="31" rx="70" ry="9" fill="#fff" opacity=".8" filter="url(#m)"/>
+ <ellipse cx="130" cy="18" rx="40" ry="7" fill="#fff" opacity=".7" filter="url(#m)"/>
+ <path d="M0 54 Q40 38 80 52 Q120 40 160 50 L160 90 L0 90Z" fill="url(#mid)"/>
+ <path d="M0 70 Q50 58 96 68 Q130 61 160 66 L160 90 L0 90Z" fill="url(#near)"/>
+ <path d="M14 63 C10 76 74 72 58 85 C50 94 110 94 140 106" stroke="#5F686A" stroke-width="6" fill="none" stroke-linecap="round"/>
+ <path d="M14 63 C10 76 74 72 58 85 C50 94 110 94 140 106" stroke="#fff" stroke-opacity=".7" stroke-width=".5" fill="none" stroke-dasharray="2.4 2"/>
+</svg>`;
+const LAND = `url('data:image/svg+xml;utf8,${encodeURIComponent(landscape)}') center/cover`;
+
+// ---------- building blocks
+const el = (parent, html) => { const d = document.createElement('div'); d.innerHTML = html.trim(); const n = d.firstChild; parent.appendChild(n); return n; };
+const phone = (parent, src) => el(parent, `<div class="phone"><div class="scr"><img src="${src}"></div></div>`);
+const words = (parent, cls, style, text) => {
+  const h = el(parent, `<h1 class="abs ${cls}" style="${style}"></h1>`);
+  text.split('|').forEach((line, li) => {
+    if (li) h.appendChild(document.createElement('br'));
+    line.split(' ').forEach((w, wi, arr) => {
+      const s = document.createElement('span'); s.className = 'word' + (/[ሀ-፿]/.test(w) ? ' am' : '');
+      s.textContent = w + (wi < arr.length - 1 ? ' ' : ''); h.appendChild(s);
+    });
+  });
+  return h;
+};
+const revealWords = (h, t, start, step = .09, dur = .55) => [...h.querySelectorAll('.word')].forEach((w, i) => {
+  const p = eOut(seg(t, start + i * step, dur));
+  w.style.opacity = p; w.style.transform = `translateY(${(1 - p) * 60}px)`;
+});
+const place = (n, x, y, s = 1, r = 0, o = 1, extra = '') => {
+  n.style.left = x + 'px'; n.style.top = y + 'px'; n.style.opacity = o;
+  n.style.transform = `scale(${s}) rotate(${r}deg) ${extra}`;
+};
+
+// ---------- scenes
+const S = {};
+const mk = (key, bg) => { const n = el(stage, `<div class="scene" data-k="${key}" style="background:${bg}"></div>`); S[key] = { n }; return n; };
+
+// 1. intro — landscape, icon springs in, wordmark rises
+{ const n = mk('intro', LAND);
+  const glassBg = el(n, `<div class="abs glass" style="left:610px;top:300px;width:700px;height:480px;border-radius:60px"></div>`);
+  const ic = el(n, `<img class="abs" src="icon.png" style="left:860px;top:350px;width:200px;height:200px;border-radius:46px;box-shadow:0 30px 60px rgba(0,0,0,.25)">`);
+  const h = words(n, '', 'left:0;width:1920px;top:590px;text-align:center;font-size:96px', 'Glass Calendar');
+  const tag = el(n, `<div class="abs" style="left:0;width:1920px;top:705px;text-align:center;font-size:30px;font-weight:600;color:#2b3a2b"></div>`);
+  tag.innerHTML = 'Your days, beautifully. · <span class="am">ቀናትዎ፣ በውበት።</span>';
+  S.intro.update = (t, d) => {
+    n.style.backgroundSize = `${100 + t * 2.2}%`;
+    const g = eOut(seg(t, .1, .8)); glassBg.style.opacity = g; glassBg.style.transform = `translateY(${(1 - g) * 40}px) scale(${.94 + .06 * g})`;
+    const p = back(seg(t, .35, .8)); ic.style.transform = `scale(${p}) rotate(${(1 - p) * -14}deg)`; ic.style.opacity = clamp(p * 1.4);
+    revealWords(h, t, .9, .12);
+    const q = eOut(seg(t, 1.6, .7)); tag.style.opacity = q; tag.style.transform = `translateY(${(1 - q) * 24}px)`;
+  };
+}
+
+// 2. today — cream, phone rises, headline words
+{ const n = mk('today', '#E9E8E3');
+  const cards = [['#BDB4D4', '#4B4170', 'Design review', '10:00 · 1 h'], ['#E6BA6E', '#5E4310', 'You have a meeting', '3:00 · 30 min'], ['#9ECBC7', '#0F5A57', 'Coffee with Abebe', '4:20 · 25 min']]
+    .map(([bg, fg, a, b]) => el(n, `<div class="abs" style="padding:26px 30px;border-radius:30px;background:${bg};color:${fg};width:300px;box-shadow:0 24px 50px rgba(0,0,0,.12)"><div style="font-size:30px;font-weight:700;letter-spacing:-.03em">${a}</div><div style="font-size:21px;margin-top:6px;opacity:.85">${b}</div></div>`));
+  const ph = phone(n, 'today_en.png');
+  const h = words(n, '', 'left:150px;top:300px;font-size:120px', 'Your days,|beautifully.');
+  const s2 = el(n, `<div class="abs" style="left:156px;top:580px;width:620px;font-size:32px;font-weight:500;line-height:1.35;color:#4a4a46">Pastel task cards and two world clocks, always at a glance.</div>`);
+  S.today.update = (t, d) => {
+    revealWords(h, t, .3);
+    const q = eOut(seg(t, 1.1, .7)); s2.style.opacity = q; s2.style.transform = `translateY(${(1 - q) * 20}px)`;
+    const p = eOut(seg(t, .15, 1.1));
+    place(ph, 1180, lerp(1150, 110, p) - t * 6, 1, lerp(8, -3, p));
+    cards.forEach((c, i) => {
+      const k = back(seg(t, 1.6 + i * .35, .8));
+      const fx = [860, 1590, 1590][i], fy = [720, 250, 690][i], r = [-7, 6, -4][i];
+      place(c, fx, fy + Math.sin(t * 1.4 + i) * 8, .6 + .4 * k, r, clamp(k * 1.3));
+    });
+  };
+}
+
+// 3. calendar — phone from the right, slow push-in
+{ const n = mk('calendar', 'linear-gradient(120deg,#F3F1EA,#E3E1D8)');
+  const ph = phone(n, 'calendar_en.png');
+  const ph2 = phone(n, 'calendar_am.png');
+  const h = words(n, '', 'left:150px;top:330px;font-size:112px', 'Every day,|by the hour.');
+  S.calendar.update = (t, d) => {
+    revealWords(h, t, .25);
+    const p = eOut(seg(t, 0, 1.0)), z = 1 + t * .012;
+    place(ph2, lerp(1900, 1410, eOut(seg(t, .35, 1.0))), 150, z * .92, 7, 1);
+    place(ph, lerp(1700, 1080, p), 110, z, -4, 1);
+  };
+}
+
+// 4. widgets — landscape, phone + islands
+{ const n = mk('widgets', LAND);
+  const ph = phone(n, 'widgets_en.png');
+  const ph2 = phone(n, 'islands_en.png');
+  const panel = el(n, `<div class="abs glass" style="left:110px;top:300px;width:760px;height:420px;border-radius:56px"></div>`);
+  const h = words(n, '', 'left:170px;top:370px;font-size:96px', 'Frosted glass|widgets.');
+  const s2 = el(n, `<div class="abs" style="left:174px;top:600px;font-size:30px;font-weight:600;color:#2b3a2b">Weekly · Monthly · Island · Home screen</div>`);
+  S.widgets.update = (t, d) => {
+    n.style.backgroundSize = `${108 - t * 1.5}%`;
+    const g = eOut(seg(t, 0, .7)); panel.style.opacity = g; panel.style.transform = `scale(${.95 + .05 * g})`;
+    revealWords(h, t, .2);
+    s2.style.opacity = eOut(seg(t, .9, .6));
+    place(ph, 1020, lerp(1100, 100, eOut(seg(t, 0, 1))) + Math.sin(t * 1.2) * 6, 1, -3);
+    place(ph2, 1460, lerp(1150, 150, eOut(seg(t, .3, 1))) + Math.sin(t * 1.2 + 1) * 6, .92, 6);
+  };
+}
+
+// 5. ethiopia — flip from English/Gregorian to Amharic/Ethiopian
+{ const n = mk('ethiopia', 'radial-gradient(120% 120% at 20% 0%,#2a2a2a 0%,#0a0a0a 60%)');
+  const ph = phone(n, 'today_en.png'); const img = ph.querySelector('img');
+  const big = el(n, `<div class="abs am" style="left:120px;top:250px;font-size:190px;font-weight:800;color:#fff;letter-spacing:-.02em">መስከረም</div>`);
+  const h = words(n, '', 'left:130px;top:520px;font-size:78px;color:#fff', 'Ethiopian calendar.|In Amharic.');
+  const chips = ['ዓ.ም 2019', 'ጳጉሜ', 'ሰኞ · ማክሰኞ · ረቡዕ'].map((c, i) => el(n, `<div class="pill am" style="background:${['#E6BA6E', '#9ECBC7', '#BDB4D4'][i]};color:#141414">${c}</div>`));
+  S.ethiopia.update = (t, d) => {
+    const fl = seg(t, 1.6, .9);                 // flip: 0..1, swap image at half
+    const ang = fl < .5 ? fl * 180 : (fl - 1) * 180;
+    img.src = fl < .5 ? 'today_en.png' : 'today_am_meskel.png';
+    place(ph, 1240, lerp(1150, 110, eOut(seg(t, 0, .9))), 1, -3, 1, `perspective(1600px) rotateY(${ang}deg)`);
+    const b = eOut(seg(t, .3, .9)); big.style.opacity = b; big.style.transform = `translateX(${(1 - b) * -80}px)`;
+    revealWords(h, t, .7);
+    chips.forEach((c, i) => { const k = back(seg(t, 2.4 + i * .3, .7)); place(c, [140, 400, 610][i], 780, .6 + .4 * k, 0, clamp(k * 1.3)); });
+  };
+}
+
+// 6. holidays — black/gold, chips fly in around two phones
+{ const n = mk('holidays', '#0B0B0B');
+  const ph = phone(n, 'today_am_meskel.png');
+  const ph2 = phone(n, 'today_fast.png');
+  const h = words(n, '', 'left:0;width:1920px;text-align:center;top:70px;font-size:84px;color:#fff', 'Holidays & fasts, built in.');
+  const items = [
+    ['ፋሲካ', 'Fasika · Easter', '#E6BA6E', 230, 330], ['መስቀል', 'Meskel', '#E6BA6E', 170, 560], ['ጥምቀት', 'Timket · Epiphany', '#E6BA6E', 260, 790],
+    ['ዐቢይ ጾም', 'Abiy Tsom · 55 days', '#C5CE9B', 1430, 330], ['ረቡዕና ዓርብ', 'Wednesday & Friday fasts', '#C5CE9B', 1400, 560], ['ዒድ አል ፈጥር', 'Eid al-Fitr', '#9ECBC7', 1450, 790],
+  ].map(([am, en, bg, x, y]) => ({ n: el(n, `<div class="pill" style="background:${bg};color:#141414"><span class="am">${am}</span><small>${en}</small></div>`), x, y }));
+  S.holidays.update = (t, d) => {
+    revealWords(h, t, .15, .07);
+    place(ph, 560, lerp(1150, 210, eOut(seg(t, 0, 1))), .95, -5);
+    place(ph2, 960, lerp(1200, 250, eOut(seg(t, .25, 1))), .9, 5);
+    items.forEach((it, i) => {
+      const k = back(seg(t, .9 + i * .55, .7));
+      place(it.n, it.x + (1 - k) * (it.x < 900 ? -120 : 120), it.y + Math.sin(t * 1.3 + i) * 6, .7 + .3 * k, 0, clamp(k * 1.3));
+    });
+  };
+}
+
+// 7. sync — orbiting account badges around the app icon
+{ const n = mk('sync', '#F2EFE8');
+  const ic = el(n, `<img class="abs" src="icon.png" style="left:1260px;top:390px;width:300px;height:300px;border-radius:70px;box-shadow:0 30px 70px rgba(0,0,0,.25)">`);
+  const rings = [260, 380].map(r => el(n, `<div class="abs" style="left:${1410 - r}px;top:${540 - r}px;width:${r * 2}px;height:${r * 2}px;border-radius:50%;border:2px solid rgba(20,20,20,.08)"></div>`));
+  const badges = [['G', '#4285F4'], ['☁', '#111'], ['O', '#0F6CBD'], ['S', '#1428A0'], ['P', '#7E57C2']]
+    .map(([l, c]) => el(n, `<div class="abs" style="width:96px;height:96px;margin:-48px 0 0 -48px;border-radius:50%;background:#fff;color:${c};display:flex;align-items:center;justify-content:center;font-size:44px;font-weight:900;box-shadow:0 14px 30px rgba(0,0,0,.14)">${l}</div>`));
+  const h = words(n, '', 'left:150px;top:350px;font-size:104px', 'Stays in sync.');
+  const s2 = el(n, `<div class="abs" style="left:156px;top:500px;font-size:36px;font-weight:600;color:#55554f">Google · iCloud · Outlook · and more</div>`);
+  S.sync.update = (t, d) => {
+    revealWords(h, t, .2);
+    s2.style.opacity = eOut(seg(t, .8, .6));
+    const p = back(seg(t, 0, .9)); ic.style.transform = `scale(${p})`;
+    rings.forEach((r, i) => r.style.opacity = eOut(seg(t, .2 + i * .15, .6)));
+    badges.forEach((b, i) => {
+      const R = i % 2 ? 260 : 380, k = eOut(seg(t, .4 + i * .12, .8));
+      const a = t * (i % 2 ? -0.55 : 0.4) + i * (Math.PI * 2 / 5);
+      b.style.left = (1410 + Math.cos(a) * R * k) + 'px'; b.style.top = (540 + Math.sin(a) * R * k) + 'px'; b.style.opacity = k;
+    });
+  };
+}
+
+// 8. outro — landscape, glass card with logo + tagline
+{ const n = mk('outro', LAND);
+  const card = el(n, `<div class="abs glass" style="left:460px;top:250px;width:1000px;height:560px;border-radius:70px"></div>`);
+  const ic = el(n, `<img class="abs" src="icon.png" style="left:870px;top:310px;width:180px;height:180px;border-radius:42px;box-shadow:0 24px 50px rgba(0,0,0,.25)">`);
+  const h = words(n, '', 'left:0;width:1920px;text-align:center;top:520px;font-size:92px', 'Glass Calendar');
+  const tag = el(n, `<div class="abs" style="left:0;width:1920px;top:640px;text-align:center;font-size:36px;font-weight:600;color:#2b3a2b">Your time, beautifully kept.</div>`);
+  const meta = el(n, `<div class="abs" style="left:0;width:1920px;top:712px;text-align:center;font-size:24px;font-weight:600;color:#3d4d3d">Ethiopian & Gregorian · English & <span class="am">አማርኛ</span> · Android</div>`);
+  S.outro.update = (t, d) => {
+    n.style.backgroundSize = `${104 + t * 1.2}%`;
+    const g = eOut(seg(t, 0, .8)); card.style.opacity = g; card.style.transform = `scale(${.94 + .06 * g})`;
+    const p = back(seg(t, .3, .8)); ic.style.transform = `scale(${p})`; ic.style.opacity = clamp(p * 1.3);
+    revealWords(h, t, .6, .1);
+    tag.style.opacity = eOut(seg(t, 1.2, .6)); meta.style.opacity = eOut(seg(t, 1.6, .6));
+    const out = seg(t, d - .8, .8); n.style.filter = `brightness(${1 - out})`;   // fade to black
+  };
+}
+
+// ---------- timeline
+const FADE = .45;
+window.setTime = (T) => {
+  for (const sc of TIMING.scenes) {
+    const s = S[sc.key], st = sc.start - (sc.key === 'intro' ? 0 : FADE / 2), en = sc.end + FADE / 2;
+    const on = T >= st && T <= en;
+    s.n.style.display = on ? 'block' : 'none';
+    if (!on) continue;
+    const lt = T - sc.start, d = sc.end - sc.start;
+    const fi = sc.key === 'intro' ? 1 : eInOut((T - st) / FADE), fo = sc.key === 'outro' ? 1 : eInOut((en - T) / FADE);
+    s.n.style.opacity = Math.min(fi, fo);
+    s.n.style.zIndex = TIMING.scenes.indexOf(sc);
+    s.update(Math.max(0, lt), d);
+  }
+  // subtitle for the voiceover currently speaking
+  const cur = TIMING.scenes.find(sc => T >= sc.vo - .1 && T <= sc.voEnd + .35);
+  sub.style.opacity = cur ? 1 : 0;
+  if (cur && sub.textContent !== cur.text) sub.textContent = cur.text;
+};
+window.ready = Promise.all([document.fonts.ready, ...[...document.images].map(i => i.decode().catch(() => {}))]);
+setTime(0);
+</script></body></html>

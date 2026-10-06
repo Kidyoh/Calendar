@@ -26,12 +26,42 @@ Future<void> main() async {
   );
 }
 
-class GlassCalendarApp extends StatelessWidget {
+class GlassCalendarApp extends StatefulWidget {
   const GlassCalendarApp({super.key});
+
+  @override
+  State<GlassCalendarApp> createState() => _GlassCalendarAppState();
+}
+
+class _GlassCalendarAppState extends State<GlassCalendarApp> {
+  String? _lang;
+  bool? _eth;
+
+  /// Language / calendar changed: redraw every widget in place. Nothing is
+  /// remounted, so open sheets, the current tab and scroll positions all
+  /// survive and the layout stays exactly the same, just re-labelled.
+  void _rebuildEverything() {
+    void mark(Element e) {
+      e.markNeedsBuild();
+      e.visitChildren(mark);
+    }
+
+    (context as Element).visitChildren(mark);
+  }
 
   @override
   Widget build(BuildContext context) {
     final repo = context.watch<CalendarRepository>();
+    final changed =
+        (_lang != null && _lang != repo.language) ||
+        (_eth != null && _eth != repo.ethiopian);
+    _lang = repo.language;
+    _eth = repo.ethiopian;
+    if (changed) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _rebuildEverything();
+      });
+    }
     return MaterialApp(
       title: 'Glass Calendar',
       debugShowCheckedModeBanner: false,
@@ -43,12 +73,7 @@ class GlassCalendarApp extends StatelessWidget {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      // Remount the root screen when the language flips so every string
-      // re-renders in the new language.
-      home: KeyedSubtree(
-        key: ValueKey(repo.language),
-        child: repo.onboarded ? const HomeShell() : const OnboardingScreen(),
-      ),
+      home: repo.onboarded ? const HomeShell() : const OnboardingScreen(),
     );
   }
 }

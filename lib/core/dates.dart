@@ -162,8 +162,9 @@ String fmtDuration(Duration d) {
 String fmtCountdown(Duration d) {
   final am = AppLocale.am;
   if (d.inMinutes <= 0) return am ? 'አሁን' : 'now';
-  if (d.inMinutes < 60)
+  if (d.inMinutes < 60) {
     return am ? 'በ${d.inMinutes} ደቂቃ ውስጥ' : 'in ${d.inMinutes} min';
+  }
   if (d.inHours < 24) return am ? 'በ${d.inHours} ሰዓት ውስጥ' : 'in ${d.inHours} h';
   return am ? 'በ${d.inDays} ቀን ውስጥ' : 'in ${d.inDays} d';
 }

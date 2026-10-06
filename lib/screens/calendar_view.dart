@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../core/dates.dart';
+import '../core/holidays.dart';
 import '../core/locale.dart';
 import '../core/theme.dart';
 import '../models/event_item.dart';
 import '../services/calendar_repository.dart';
+import '../widgets/holiday_views.dart';
 import '../widgets/motion.dart';
 import 'event_editor.dart';
 
@@ -21,6 +23,9 @@ class CalendarView extends StatelessWidget {
     final days = <DateTime>[
       for (var d = 1; d <= daysInMonth; d++)
         if (repo.hasEvents(addDays(month, d - 1)) ||
+            repo
+                .holidaysFor(addDays(month, d - 1))
+                .any((h) => h.kind != HolidayKind.saint) ||
             sameDay(addDays(month, d - 1), repo.selectedDay))
           addDays(month, d - 1),
     ];
@@ -36,6 +41,8 @@ class CalendarView extends StatelessWidget {
           _MonthSwitcher(repo: repo),
           const SizedBox(height: 14),
           _MonthGrid(repo: repo),
+          const SizedBox(height: 14),
+          const MonthHolidaysCard(),
           const SizedBox(height: 14),
           if (days.isEmpty)
             Padding(
@@ -225,23 +232,49 @@ class _MonthGrid extends StatelessWidget {
                                           : FontWeight.w600,
                                       color: sel
                                           ? Colors.white
-                                          : inMonth
-                                          ? AppColors.ink
-                                          : AppColors.ink.withValues(
-                                              alpha: .25,
-                                            ),
+                                          : (repo.isDayOff(d)
+                                                    ? holidayRed
+                                                    : AppColors.ink)
+                                                .withValues(
+                                                  alpha: inMonth ? 1 : .25,
+                                                ),
                                     ),
                                   ),
                                 ),
                                 const SizedBox(height: 3),
-                                Container(
-                                  width: 5,
+                                // Event dot + sage dash on fasting days.
+                                SizedBox(
                                   height: 5,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: repo.hasEvents(d)
-                                        ? paletteAt(dayNum(d)).chip
-                                        : Colors.transparent,
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Container(
+                                        width: 5,
+                                        height: 5,
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          color: repo.hasEvents(d)
+                                              ? paletteAt(dayNum(d)).chip
+                                              : Colors.transparent,
+                                        ),
+                                      ),
+                                      if (repo.fastFor(d) != null &&
+                                          inMonth) ...[
+                                        const SizedBox(width: 2),
+                                        Container(
+                                          width: 9,
+                                          height: 3,
+                                          decoration: BoxDecoration(
+                                            color: fastSage.withValues(
+                                              alpha: .7,
+                                            ),
+                                            borderRadius: BorderRadius.circular(
+                                              2,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ],
                                   ),
                                 ),
                               ],
@@ -277,6 +310,7 @@ class DayCard extends StatelessWidget {
     final all = repo.eventsOn(day);
     final allDay = all.where((e) => e.allDay).toList();
     final reminders = all.where((e) => e.isReminder).toList();
+    final holidays = repo.holidaysFor(day);
     final timed = all.where((e) => !e.allDay && !e.isReminder).toList();
 
     final hours = <int>{...timed.map((e) => e.start.hour)}.toList()..sort();
@@ -363,7 +397,8 @@ class DayCard extends StatelessWidget {
               ),
             ],
           ),
-          if (allDay.isNotEmpty ||
+          if (holidays.isNotEmpty ||
+              allDay.isNotEmpty ||
               reminders.isNotEmpty ||
               overflow.isNotEmpty) ...[
             const SizedBox(height: 10),
@@ -371,6 +406,13 @@ class DayCard extends StatelessWidget {
               spacing: 6,
               runSpacing: 6,
               children: [
+                for (final h in holidays)
+                  _ChipBox(
+                    palette: palette,
+                    text: h.name,
+                    icon: holidayIcon(h.kind),
+                    outlined: true,
+                  ),
                 for (final e in allDay)
                   _Chip(
                     event: e,
@@ -483,10 +525,12 @@ class _ChipBox extends StatelessWidget {
     required this.palette,
     required this.text,
     this.outlined = false,
+    this.icon,
   });
   final DayPalette palette;
   final String text;
   final bool outlined;
+  final IconData? icon;
   @override
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
@@ -497,15 +541,26 @@ class _ChipBox extends StatelessWidget {
           ? Border.all(color: palette.fg.withValues(alpha: .6))
           : null,
     ),
-    child: Text(
-      text,
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
-      style: TextStyle(
-        color: outlined ? palette.fg : Colors.white,
-        fontSize: 11.5,
-        fontWeight: FontWeight.w600,
-      ),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (icon != null) ...[
+          Icon(icon, size: 13, color: outlined ? palette.fg : Colors.white),
+          const SizedBox(width: 4),
+        ],
+        Flexible(
+          child: Text(
+            text,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: outlined ? palette.fg : Colors.white,
+              fontSize: 11.5,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ],
     ),
   );
 }

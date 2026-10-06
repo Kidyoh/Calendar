@@ -108,9 +108,15 @@ private object WidgetRenderer {
             views.setTextViewText(R.id.add, prefs.getString("label_new", "＋ New Event"))
             val title = prefs.getString("next_title", "") ?: ""
             val whenText = prefs.getString("next_when", "") ?: ""
+            val holiday = prefs.getString("holiday", "") ?: ""
             views.setTextViewText(
                 R.id.next,
-                if (title.isEmpty()) (prefs.getString("label_none", "No upcoming events") ?: "") else "$whenText · $title"
+                when {
+                    holiday.isNotEmpty() && title.isNotEmpty() -> "$holiday · $whenText $title"
+                    holiday.isNotEmpty() -> holiday
+                    title.isEmpty() -> prefs.getString("label_none", "No upcoming events") ?: ""
+                    else -> "$whenText · $title"
+                }
             )
         } else {
             views.setTextViewText(R.id.month, monthName)

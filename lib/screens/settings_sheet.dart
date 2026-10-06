@@ -1,6 +1,7 @@
 import 'package:device_calendar_plus/device_calendar_plus.dart';
 import 'package:flutter/material.dart';
 
+import '../core/holidays.dart';
 import '../core/locale.dart';
 
 import 'package:provider/provider.dart';
@@ -8,6 +9,7 @@ import 'package:provider/provider.dart';
 import '../core/theme.dart';
 import '../services/calendar_repository.dart';
 import '../services/widget_sync.dart';
+import '../widgets/holiday_views.dart';
 import '../widgets/common.dart';
 
 Future<void> showSettingsSheet(BuildContext context) {
@@ -100,6 +102,53 @@ class _SettingsSheet extends StatelessWidget {
                     onChanged: (i) => repo.setLanguage(i == 1 ? 'am' : 'en'),
                   ),
                 ],
+              ),
+            ),
+            const SizedBox(height: 18),
+            _section(t('Holidays')),
+            Material(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(24),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 6, 8, 10),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    for (final (kind, label) in [
+                      (HolidayKind.national, t('Ethiopian public holidays')),
+                      (HolidayKind.orthodox, t('Orthodox feasts & fasts')),
+                      (HolidayKind.islamic, t('Islamic holidays')),
+                      (HolidayKind.saint, t('Monthly saints\' days')),
+                    ])
+                      SwitchListTile.adaptive(
+                        contentPadding: EdgeInsets.zero,
+                        secondary: Icon(holidayIcon(kind)),
+                        title: Text(
+                          label,
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                        value: switch (kind) {
+                          HolidayKind.national => repo.showNational,
+                          HolidayKind.orthodox => repo.showOrthodox,
+                          HolidayKind.islamic => repo.showIslamic,
+                          HolidayKind.saint => repo.showSaints,
+                        },
+                        onChanged: (v) => repo.setHolidayCategory(kind, v),
+                      ),
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: Text(
+                        t(
+                          'Islamic dates follow the moon and may move by a day.',
+                        ),
+                        style: const TextStyle(
+                          color: AppColors.mute,
+                          fontSize: 12.5,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
             const SizedBox(height: 18),

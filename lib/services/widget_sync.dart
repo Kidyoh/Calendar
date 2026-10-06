@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:home_widget/home_widget.dart';
 
 import '../core/dates.dart';
+import '../core/locale.dart';
 import '../models/event_item.dart';
 
 const iosAppGroup = 'group.com.kidyoh.glass_calendar';
@@ -39,9 +40,9 @@ Map<String, String> buildWidgetPayload(
     nextTitle = e.title;
     final d = dateOnly(e.start);
     final prefix = sameDay(d, today)
-        ? 'Today'
+        ? t('Today')
         : sameDay(d, addDays(today, 1))
-        ? 'Tomorrow'
+        ? t('Tomorrow')
         : weekdayShort(d, len: 3);
     nextWhen = '$prefix ${fmtTime(e.start)}';
   }
@@ -51,6 +52,12 @@ Map<String, String> buildWidgetPayload(
     'next_title': nextTitle,
     'next_when': nextWhen,
     'week_monday': weekStartsMonday ? '1' : '0',
+    'eth': AppLocale.ethiopian ? '1' : '0',
+    'lang': AppLocale.lang,
+    'label_new': '＋ ${t('New Event')}',
+    'label_none': t('No upcoming events'),
+    'label_event': t('event'),
+    'label_events': t('events'),
   };
 }
 

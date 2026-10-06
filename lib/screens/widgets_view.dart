@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../core/locale.dart';
+
 import '../core/theme.dart';
 import '../services/widget_sync.dart';
 import '../widgets/common.dart';
@@ -18,7 +20,7 @@ class WidgetsView extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.fromLTRB(14, 0, 14, 40),
       children: _stagger([
-        _title('Glass'),
+        _title(t('Glass')),
         ClipRRect(
           borderRadius: BorderRadius.circular(40),
           child: Stack(
@@ -41,9 +43,13 @@ class WidgetsView extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 12),
-        _pinButton(context, 'Add glass widget to home screen', glassWidgetName),
+        _pinButton(
+          context,
+          t('Add glass widget to home screen'),
+          glassWidgetName,
+        ),
         const SizedBox(height: 26),
-        _title('Island'),
+        _title(t('Island')),
         const IslandWeek(),
         const SizedBox(height: 12),
         const IslandDayProgress(),
@@ -52,7 +58,7 @@ class WidgetsView extends StatelessWidget {
         const SizedBox(height: 12),
         _pinButton(
           context,
-          'Add island widget to home screen',
+          t('Add island widget to home screen'),
           islandWidgetName,
         ),
       ]),
@@ -91,7 +97,7 @@ class WidgetsView extends StatelessWidget {
           if (!ok && context.mounted) {
             showSnack(
               context,
-              'Long-press your home screen → Widgets → Glass Calendar',
+              t('Long-press your home screen → Widgets → Glass Calendar'),
             );
           }
         },

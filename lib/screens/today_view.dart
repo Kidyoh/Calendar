@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+
+import '../core/locale.dart';
+
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:timezone/timezone.dart' as tz;
@@ -74,7 +77,9 @@ class TodayView extends StatelessWidget {
                               Expanded(
                                 child: Text(
                                   isToday
-                                      ? 'Todays tasks'
+                                      ? t('Todays tasks')
+                                      : AppLocale.am
+                                      ? 'የ${weekdayName(day)} ተግባራት'
                                       : '${weekdayName(day)}\'s tasks',
                                   style: const TextStyle(
                                     fontSize: 17,
@@ -146,15 +151,41 @@ class _Header extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          RollingText(
-            weekdayName(day),
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
-              color: AppColors.ink,
-            ),
+          Row(
+            children: [
+              RollingText(
+                weekdayName(day),
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.ink,
+                ),
+              ),
+              const SizedBox(width: 10),
+              // Same day in the other calendar (Gregorian ⇄ Ethiopian).
+              Flexible(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: .6),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: RollingText(
+                    fmtOtherCalendar(day),
+                    style: const TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.mute,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 2),
+          const SizedBox(height: 4),
           IntrinsicHeight(
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -168,7 +199,7 @@ class _Header extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         RollingText(
-                          '${day.day.toString().padLeft(2, '0')}.${day.month.toString().padLeft(2, '0')}',
+                          '${dayNum(day).toString().padLeft(2, '0')}.${monthNum(day).toString().padLeft(2, '0')}',
                           style: const TextStyle(
                             fontSize: 84,
                             fontWeight: FontWeight.w400,
@@ -230,10 +261,7 @@ class _Header extends StatelessWidget {
     );
   }
 
-  static String _fmt(DateTime t) {
-    final h = t.hour % 12 == 0 ? 12 : t.hour % 12;
-    return '$h:${t.minute.toString().padLeft(2, '0')} ${t.hour >= 12 ? 'PM' : 'AM'}';
-  }
+  static String _fmt(DateTime t) => fmtTime(t);
 }
 
 class _Clock extends StatelessWidget {
@@ -316,7 +344,7 @@ class _WeekChips extends StatelessWidget {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              '${d.day}',
+                              '${dayNum(d)}',
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w700,
@@ -417,8 +445,8 @@ class TaskCard extends StatelessWidget {
                     color: palette.chip,
                     borderRadius: BorderRadius.circular(20),
                   ),
-                  child: const Text(
-                    'All day',
+                  child: Text(
+                    t('All day'),
                     style: TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.w600,
@@ -430,8 +458,19 @@ class TaskCard extends StatelessWidget {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    _Time(label: 'Start', value: fmtTime(e.start), color: fg),
                     Expanded(
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.bottomLeft,
+                        child: _Time(
+                          label: t('Start'),
+                          value: fmtTime(e.start),
+                          color: fg,
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
                       child: Center(
                         child: Container(
                           padding: const EdgeInsets.symmetric(
@@ -453,11 +492,17 @@ class TaskCard extends StatelessWidget {
                         ),
                       ),
                     ),
-                    _Time(
-                      label: 'End',
-                      value: fmtTime(e.end),
-                      color: fg,
-                      end: true,
+                    Expanded(
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.bottomRight,
+                        child: _Time(
+                          label: t('End'),
+                          value: fmtTime(e.end),
+                          color: fg,
+                          end: true,
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -604,8 +649,8 @@ class _RemindersPill extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text(
-                'Reminders',
+              Text(
+                t('Reminders'),
                 style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
               ),
               if (count > 0) ...[
@@ -661,9 +706,9 @@ class _RemindersPill extends StatelessWidget {
                   children: [
                     Row(
                       children: [
-                        const Expanded(
+                        Expanded(
                           child: Text(
-                            'Reminders',
+                            t('Reminders'),
                             style: TextStyle(
                               fontSize: 26,
                               fontWeight: FontWeight.w700,
@@ -673,16 +718,16 @@ class _RemindersPill extends StatelessWidget {
                         RoundIconButton(
                           icon: Icons.add,
                           onTap: () => showEventEditor(ctx, reminder: true),
-                          tooltip: 'Add reminder',
+                          tooltip: t('Add reminder'),
                         ),
                       ],
                     ),
                     const SizedBox(height: 10),
                     if (list.isEmpty)
-                      const Padding(
+                      Padding(
                         padding: EdgeInsets.symmetric(vertical: 24),
                         child: Text(
-                          'Nothing to remember. Tap + to add one.',
+                          t('Nothing to remember. Tap + to add one.'),
                           style: TextStyle(color: AppColors.mute),
                         ),
                       ),
@@ -713,7 +758,7 @@ class _RemindersPill extends StatelessWidget {
                                   ),
                                 ),
                                 subtitle: Text(
-                                  '${weekdayShort(r.start, len: 3)} ${r.start.day} ${monthShort(r.start)} · ${fmtTime(r.start)}',
+                                  '${weekdayShort(r.start, len: 3)} ${dayNum(r.start)} ${monthShort(r.start)} · ${fmtTime(r.start)}',
                                 ),
                               ),
                             ),
@@ -747,9 +792,9 @@ class _ConnectBanner extends StatelessWidget {
         children: [
           const Icon(Icons.sync, color: Colors.white),
           const SizedBox(width: 14),
-          const Expanded(
+          Expanded(
             child: Text(
-              'Sync Google, iCloud & Outlook events',
+              t('Sync Google, iCloud & Outlook events'),
               style: TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.w600,
@@ -787,12 +832,12 @@ class _Empty extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           Text(
-            isToday ? 'A clear day. Enjoy it.' : 'Nothing planned.',
+            isToday ? t('A clear day. Enjoy it.') : t('Nothing planned.'),
             style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 2),
-          const Text(
-            'Tap + to add an event',
+          Text(
+            t('Tap + to add an event'),
             style: TextStyle(color: AppColors.mute),
           ),
         ],

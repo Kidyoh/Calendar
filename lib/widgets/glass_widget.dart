@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+
+import '../core/locale.dart';
+
 import 'package:provider/provider.dart';
 
 import '../core/dates.dart';
@@ -43,7 +46,7 @@ class _GlassWeekWidgetState extends State<GlassWeekWidget> {
               Expanded(
                 child: PillToggle(
                   style: PillStyle.glass,
-                  labels: const ['Weekly', 'Monthly'],
+                  labels: [t('Weekly'), t('Monthly')],
                   index: _mode,
                   onChanged: (i) => setState(() => _mode = i),
                 ),
@@ -54,7 +57,7 @@ class _GlassWeekWidgetState extends State<GlassWeekWidget> {
                 size: 48,
                 background: white.withValues(alpha: 0.16),
                 foreground: white,
-                tooltip: 'Settings',
+                tooltip: t('Settings'),
                 onTap: widget.onSettings,
               ),
             ],
@@ -86,7 +89,7 @@ class _GlassWeekWidgetState extends State<GlassWeekWidget> {
                   ),
                 ),
                 Text(
-                  '${sel.day}',
+                  '${dayNum(sel)}',
                   style: const TextStyle(
                     color: white,
                     fontSize: 52,
@@ -114,7 +117,7 @@ class _GlassWeekWidgetState extends State<GlassWeekWidget> {
                   alignment: Alignment.centerLeft,
                   child: _action(
                     Icons.edit_calendar_outlined,
-                    'Add Reminder',
+                    t('Add Reminder'),
                     widget.onAddReminder,
                     filled: false,
                   ),
@@ -127,7 +130,7 @@ class _GlassWeekWidgetState extends State<GlassWeekWidget> {
                   alignment: Alignment.centerRight,
                   child: _action(
                     Icons.add_rounded,
-                    'New Event',
+                    t('New Event'),
                     widget.onNewEvent,
                     filled: true,
                   ),
@@ -203,12 +206,10 @@ class _GlassWeekWidgetState extends State<GlassWeekWidget> {
   }
 
   Widget _month(CalendarRepository repo) {
-    final first = DateTime(repo.selectedDay.year, repo.selectedDay.month, 1);
+    final first = monthStart(repo.selectedDay);
     final gridStart = startOfWeek(first, monday: repo.weekStartsMonday);
     final weeks =
-        ((first.difference(gridStart).inDays +
-                    DateTime(first.year, first.month + 1, 0).day) /
-                7)
+        ((first.difference(gridStart).inDays + daysInMonthOf(first)) / 7)
             .ceil();
     return GestureDetector(
       onHorizontalDragEnd: (d) {
@@ -248,7 +249,7 @@ class _GlassWeekWidgetState extends State<GlassWeekWidget> {
                           day: day,
                           repo: repo,
                           showLabel: false,
-                          dim: day.month != first.month,
+                          dim: !sameMonth(day, first),
                         );
                       },
                     ),
@@ -326,7 +327,7 @@ class GlassDayCell extends StatelessWidget {
                     : null,
               ),
               child: Text(
-                '${day.day}',
+                '${dayNum(day)}',
                 style: TextStyle(
                   color: selected
                       ? Colors.black

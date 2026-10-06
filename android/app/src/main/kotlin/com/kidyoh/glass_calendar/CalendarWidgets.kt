@@ -17,13 +17,50 @@ import java.util.Locale
  * widget is correct across midnight; Flutter (home_widget) only supplies the
  * per-day event counts and the next event, via SharedPreferences.
  */
+/** Ethiopian calendar conversion (same JDN algorithm as lib/core/ethiopian.dart). */
+private object Ethiopian {
+    private const val EPOCH = 1723856
+
+    private fun gregToJdn(y: Int, m: Int, d: Int): Int {
+        val a = (14 - m) / 12
+        val yy = y + 4800 - a
+        val mm = m + 12 * a - 3
+        return d + (153 * mm + 2) / 5 + 365 * yy + yy / 4 - yy / 100 + yy / 400 - 32045
+    }
+
+    /** Returns (year, month 1..13, day). */
+    fun fromCalendar(c: Calendar): Triple<Int, Int, Int> {
+        val jdn = gregToJdn(c.get(Calendar.YEAR), c.get(Calendar.MONTH) + 1, c.get(Calendar.DAY_OF_MONTH))
+        val r = Math.floorMod(jdn - EPOCH, 1461)
+        val n = r % 365 + 365 * (r / 1460)
+        val year = 4 * Math.floorDiv(jdn - EPOCH, 1461) + r / 365 - r / 1460
+        return Triple(year, n / 30 + 1, n % 30 + 1)
+    }
+
+    val monthsAm = arrayOf(
+        "መስከረም", "ጥቅምት", "ኅዳር", "ታኅሣሥ", "ጥር", "የካቲት", "መጋቢት",
+        "ሚያዝያ", "ግንቦት", "ሰኔ", "ሐምሌ", "ነሐሴ", "ጳጉሜ"
+    )
+    val monthsEn = arrayOf(
+        "Meskerem", "Tikimt", "Hidar", "Tahsas", "Tir", "Yekatit", "Megabit",
+        "Miyazya", "Ginbot", "Sene", "Hamle", "Nehase", "Pagume"
+    )
+}
+
 private object WidgetRenderer {
     private val ids = listOf(0, 1, 2, 3, 4, 5, 6)
     private val wdIds = intArrayOf(R.id.wd0, R.id.wd1, R.id.wd2, R.id.wd3, R.id.wd4, R.id.wd5, R.id.wd6)
     private val numIds = intArrayOf(R.id.num0, R.id.num1, R.id.num2, R.id.num3, R.id.num4, R.id.num5, R.id.num6)
     private val dotIds = intArrayOf(R.id.dot0, R.id.dot1, R.id.dot2, R.id.dot3, R.id.dot4, R.id.dot5, R.id.dot6)
-    private val letters = arrayOf("S", "M", "T", "W", "T", "F", "S") // Calendar.SUNDAY = 1
+    // Indexed by Calendar.DAY_OF_WEEK - 1 (Sunday first).
+    private val letters = arrayOf("S", "M", "T", "W", "T", "F", "S")
     private val shortNames = arrayOf("Su", "Mo", "Tu", "We", "Th", "Fr", "Sa")
+    private val lettersAm = arrayOf("እ", "ሰ", "ማ", "ረ", "ሐ", "ዓ", "ቅ")
+    private val shortAm = arrayOf("እሑ", "ሰኞ", "ማክ", "ረቡ", "ሐሙ", "ዓር", "ቅዳ")
+    private val gregAm = arrayOf(
+        "ጃንዩወሪ", "ፌብሩወሪ", "ማርች", "ኤፕሪል", "ሜይ", "ጁን", "ጁላይ", "ኦገስት",
+        "ሴፕቴምበር", "ኦክቶበር", "ኖቬምበር", "ዲሴምበር"
+    )
 
     private fun key(c: Calendar) = String.format(
         Locale.US, "%04d%02d%02d", c.get(Calendar.YEAR), c.get(Calendar.MONTH) + 1, c.get(Calendar.DAY_OF_MONTH)
@@ -51,23 +88,35 @@ private object WidgetRenderer {
         val back = if (mondayFirst) (dow + 5) % 7 else dow - 1
         start.add(Calendar.DAY_OF_MONTH, -back)
 
-        val monthName = today.getDisplayName(Calendar.MONTH, Calendar.LONG, Locale.getDefault()) ?: ""
+        val eth = prefs.getString("eth", "0") == "1"
+        val am = prefs.getString("lang", "en") == "am"
+        val todayEth = Ethiopian.fromCalendar(today)
+        val monthName = when {
+            eth && am -> Ethiopian.monthsAm[todayEth.second - 1]
+            eth -> Ethiopian.monthsEn[todayEth.second - 1]
+            am -> gregAm[today.get(Calendar.MONTH)]
+            else -> today.getDisplayName(Calendar.MONTH, Calendar.LONG, Locale.ENGLISH) ?: ""
+        }
+        fun dayOf(c: Calendar) = if (eth) Ethiopian.fromCalendar(c).third else c.get(Calendar.DAY_OF_MONTH)
         val todayCount = byDay[key(today)] ?: 0
+        val labelEvent = prefs.getString("label_event", "event") ?: "event"
+        val labelEvents = prefs.getString("label_events", "events") ?: "events"
 
         if (glass) {
             views.setTextViewText(R.id.month, monthName)
-            views.setTextViewText(R.id.day, today.get(Calendar.DAY_OF_MONTH).toString())
+            views.setTextViewText(R.id.day, dayOf(today).toString())
+            views.setTextViewText(R.id.add, prefs.getString("label_new", "＋ New Event"))
             val title = prefs.getString("next_title", "") ?: ""
             val whenText = prefs.getString("next_when", "") ?: ""
             views.setTextViewText(
                 R.id.next,
-                if (title.isEmpty()) "No upcoming events" else "$whenText · $title"
+                if (title.isEmpty()) (prefs.getString("label_none", "No upcoming events") ?: "") else "$whenText · $title"
             )
         } else {
             views.setTextViewText(R.id.month, monthName)
             views.setTextViewText(
                 R.id.day,
-                if (todayCount == 1) "1 event" else "$todayCount events"
+                "$todayCount ${if (todayCount == 1) labelEvent else labelEvents}"
             )
         }
 
@@ -76,8 +125,16 @@ private object WidgetRenderer {
             d.add(Calendar.DAY_OF_MONTH, i)
             val idx = d.get(Calendar.DAY_OF_WEEK) - 1
             val isToday = key(d) == key(today)
-            views.setTextViewText(wdIds[i], if (glass) letters[idx] else shortNames[idx])
-            views.setTextViewText(numIds[i], d.get(Calendar.DAY_OF_MONTH).toString())
+            views.setTextViewText(
+                wdIds[i],
+                when {
+                    glass && am -> lettersAm[idx]
+                    glass -> letters[idx]
+                    am -> shortAm[idx]
+                    else -> shortNames[idx]
+                }
+            )
+            views.setTextViewText(numIds[i], dayOf(d).toString())
             views.setTextColor(numIds[i], if (isToday) Color.BLACK else Color.WHITE)
             views.setInt(
                 numIds[i], "setBackgroundResource",

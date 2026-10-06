@@ -1,5 +1,8 @@
 import 'package:device_calendar_plus/device_calendar_plus.dart';
 import 'package:flutter/material.dart';
+
+import '../core/locale.dart';
+
 import 'package:provider/provider.dart';
 
 import '../core/theme.dart';
@@ -51,8 +54,8 @@ class _SettingsSheet extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 16),
-            const Text(
-              'Settings',
+            Text(
+              t('Settings'),
               style: TextStyle(
                 fontSize: 28,
                 fontWeight: FontWeight.w700,
@@ -60,7 +63,46 @@ class _SettingsSheet extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 18),
-            _section('Sync'),
+            _section(t('Calendar & language')),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(24),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    t('Calendar system'),
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 10),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: PillToggle(
+                      labels: [t('Gregorian'), '${t('Ethiopian')} · ዓ.ም'],
+                      index: repo.ethiopian ? 1 : 0,
+                      onChanged: (i) => repo.setEthiopian(i == 1),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    t('Language'),
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 10),
+                  PillToggle(
+                    labels: const ['English', 'አማርኛ'],
+                    index: repo.language == 'am' ? 1 : 0,
+                    onChanged: (i) => repo.setLanguage(i == 1 ? 'am' : 'en'),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 18),
+            _section(t('Sync')),
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -84,10 +126,10 @@ class _SettingsSheet extends StatelessWidget {
                       Expanded(
                         child: Text(
                           granted
-                              ? 'Synced with your phone calendars'
+                              ? t('Synced with your phone calendars')
                               : repo.deviceSyncSupported
-                              ? 'Calendar access is off'
-                              : 'Device calendars unavailable here',
+                              ? t('Calendar access is off')
+                              : t('Device calendars unavailable here'),
                           style: const TextStyle(
                             fontWeight: FontWeight.w700,
                             fontSize: 16,
@@ -97,9 +139,10 @@ class _SettingsSheet extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 6),
-                  const Text(
-                    'Google, iCloud, Outlook and any other account added to your phone\'s '
-                    'calendar sync automatically — events you create here are written back to them.',
+                  Text(
+                    t(
+                      'Google, iCloud, Outlook and any other account added to your phone\'s calendar sync automatically — events you create here are written back to them.',
+                    ),
                     style: TextStyle(color: AppColors.mute, height: 1.35),
                   ),
                   if (!granted && repo.deviceSyncSupported) ...[
@@ -140,7 +183,8 @@ class _SettingsSheet extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                   subtitle: Text(
-                    c.accountName ?? (c.readOnly ? 'Read only' : 'On device'),
+                    c.accountName ??
+                        (c.readOnly ? t('Read only') : t('On device')),
                   ),
                   value: !repo.hiddenCalendarIds.contains(c.id),
                   onChanged: (v) => repo.setCalendarVisible(c.id, v),
@@ -155,12 +199,12 @@ class _SettingsSheet extends StatelessWidget {
               ),
             ],
             const SizedBox(height: 14),
-            _section('Today screen'),
+            _section(t('Today screen')),
             Row(
               children: [
-                const Expanded(
+                Expanded(
                   child: Text(
-                    'Second clock',
+                    t('Second clock'),
                     style: TextStyle(fontWeight: FontWeight.w600),
                   ),
                 ),
@@ -177,15 +221,15 @@ class _SettingsSheet extends StatelessWidget {
             ),
             SwitchListTile.adaptive(
               contentPadding: EdgeInsets.zero,
-              title: const Text(
-                'Week starts on Monday',
+              title: Text(
+                t('Week starts on Monday'),
                 style: TextStyle(fontWeight: FontWeight.w600),
               ),
               value: repo.weekStartsMonday,
               onChanged: repo.setWeekStartsMonday,
             ),
             const SizedBox(height: 14),
-            _section('Home screen widgets'),
+            _section(t('Home screen widgets')),
             Row(
               children: [
                 Expanded(
@@ -195,7 +239,9 @@ class _SettingsSheet extends StatelessWidget {
                       if (context.mounted && !ok) {
                         showSnack(
                           context,
-                          'Long-press your home screen → Widgets → Glass Calendar',
+                          t(
+                            'Long-press your home screen → Widgets → Glass Calendar',
+                          ),
                         );
                       }
                     },
@@ -211,7 +257,9 @@ class _SettingsSheet extends StatelessWidget {
                       if (context.mounted && !ok) {
                         showSnack(
                           context,
-                          'Long-press your home screen → Widgets → Glass Calendar',
+                          t(
+                            'Long-press your home screen → Widgets → Glass Calendar',
+                          ),
                         );
                       }
                     },
@@ -227,10 +275,10 @@ class _SettingsSheet extends StatelessWidget {
     );
   }
 
-  Widget _section(String t) => Padding(
+  Widget _section(String label) => Padding(
     padding: const EdgeInsets.only(bottom: 8),
     child: Text(
-      t.toUpperCase(),
+      label.toUpperCase(),
       style: const TextStyle(
         color: AppColors.mute,
         fontSize: 12,

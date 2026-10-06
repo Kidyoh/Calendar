@@ -1,6 +1,9 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+
+import '../core/locale.dart';
+
 import 'package:provider/provider.dart';
 
 import '../core/dates.dart';
@@ -68,7 +71,7 @@ class IslandWeek extends StatelessWidget {
                 ),
               ),
               Text(
-                '$n ${n == 1 ? 'event' : 'events'}',
+                '$n ${n == 1 ? t('event') : t('events')}',
                 style: const TextStyle(
                   color: Color(0xFF9A9A9A),
                   fontSize: 15,
@@ -117,7 +120,7 @@ class IslandWeek extends StatelessWidget {
                               color: s ? Colors.white : Colors.transparent,
                             ),
                             child: Text(
-                              '${d.day}',
+                              '${dayNum(d)}',
                               style: TextStyle(
                                 color: s ? Colors.black : Colors.white,
                                 fontSize: 16,
@@ -156,8 +159,8 @@ class IslandDayProgress extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
-                    'Day',
+                  Text(
+                    t('Day'),
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 18,
@@ -213,14 +216,14 @@ class IslandNextUp extends StatelessWidget {
       builder: (context, now) {
         final e = repo.nextUp;
         if (e == null) {
-          return const Island(
+          return Island(
             child: Row(
               children: [
                 Icon(Icons.check_circle_outline, color: Colors.white, size: 30),
                 SizedBox(width: 14),
                 Expanded(
                   child: Text(
-                    'All clear — nothing coming up',
+                    t('All clear — nothing coming up'),
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 17,
@@ -244,8 +247,8 @@ class IslandNextUp extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
-                    'Next up',
+                  Text(
+                    t('Next up'),
                     style: TextStyle(
                       color: Color(0xFF9A9A9A),
                       fontSize: 15,
@@ -254,7 +257,7 @@ class IslandNextUp extends StatelessWidget {
                   ),
                   Text(
                     started
-                        ? 'happening now'
+                        ? t('happening now')
                         : fmtCountdown(e.start.difference(now)),
                     style: const TextStyle(
                       color: Color(0xFF9A9A9A),

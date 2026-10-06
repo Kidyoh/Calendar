@@ -6,6 +6,19 @@ A Flutter calendar that combines three design directions:
 - **Glass widget** (frosted glassmorphism): Weekly / Monthly toggle, big month + day, week strip with event dots, *Add Reminder* and *New Event* actions.
 - **Island widgets** (black pills): week strip with event count, "Day 67%" hourly dot grid, and a *Next up* countdown card.
 
+## Ethiopian calendar & Amharic
+
+*Settings → Calendar & language* (or the last onboarding page) switches between the
+**Gregorian** and **Ethiopian (ዓ.ም)** calendars, and between **English** and **አማርኛ**.
+
+- Ethiopian mode regroups everything by Ethiopian months, including the 13th month
+  ጳጉሜ (5 days, 6 in leap years): the month grid, day cards, glass and island
+  widgets, the date picker and the Android home-screen widgets.
+- The Today screen always shows the same day in the other calendar next to the weekday.
+- Conversion lives in `lib/core/ethiopian.dart` (Julian Day Number based) and is
+  tested against known dates (Enkutatash, Genna, Timket, Meskel, Pagume 6, Adwa).
+- Phones set to Amharic start in Amharic + Ethiopian by default.
+
 ## Sync with other apps
 
 Events are read from, and written to, the phone's calendar database via

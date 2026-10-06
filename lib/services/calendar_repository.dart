@@ -6,6 +6,7 @@ import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../core/dates.dart';
+import '../core/locale.dart';
 import '../models/event_item.dart';
 import 'widget_sync.dart';
 
@@ -44,12 +45,14 @@ class CalendarRepository extends ChangeNotifier {
   String? lastError;
 
   late DateTime selectedDay = dateOnly(DateTime.now());
-  late DateTime focusedMonth = DateTime(selectedDay.year, selectedDay.month);
+  late DateTime focusedMonth = monthStart(selectedDay);
 
   String secondZone = 'America/New_York';
   String localZoneId = 'UTC';
   bool weekStartsMonday = true;
   bool onboarded = false;
+  String get language => AppLocale.lang;
+  bool get ethiopian => AppLocale.ethiopian;
   String? defaultCalendarId;
 
   bool get hasDeviceAccess => permission == CalendarPermissionStatus.granted;
@@ -79,6 +82,11 @@ class CalendarRepository extends ChangeNotifier {
     secondZone = _prefs!.getString('second_zone') ?? secondZone;
     weekStartsMonday = _prefs!.getBool('week_monday') ?? true;
     onboarded = _prefs!.getBool('onboarded') ?? false;
+    // First run on an Amharic phone defaults to Amharic + Ethiopian calendar.
+    final amPhone = PlatformDispatcher.instance.locale.languageCode == 'am';
+    AppLocale.lang = _prefs!.getString('language') ?? (amPhone ? 'am' : 'en');
+    AppLocale.ethiopian = _prefs!.getBool('ethiopian') ?? amPhone;
+    focusedMonth = monthStart(selectedDay);
     defaultCalendarId = _prefs!.getString('default_calendar');
     try {
       localZoneId = (await FlutterTimezone.getLocalTimezone()).identifier;
@@ -124,14 +132,8 @@ class CalendarRepository extends ChangeNotifier {
             .where((c) => !c.hidden)
             .toList();
         final today = dateOnly(DateTime.now());
-        final from = minDate(
-          DateTime(focusedMonth.year, focusedMonth.month - 1, 1),
-          addDays(today, -8),
-        );
-        final to = maxDate(
-          DateTime(focusedMonth.year, focusedMonth.month + 2, 1),
-          addDays(today, 22),
-        );
+        final from = minDate(addDays(focusedMonth, -35), addDays(today, -8));
+        final to = maxDate(addDays(focusedMonth, 70), addDays(today, 22));
         final visible = calendars
             .where((c) => !hiddenCalendarIds.contains(c.id))
             .toList();
@@ -174,7 +176,7 @@ class CalendarRepository extends ChangeNotifier {
   // ----------------------------------------------------------- selection
   void selectDay(DateTime d) {
     selectedDay = dateOnly(d);
-    final m = DateTime(d.year, d.month);
+    final m = monthStart(d);
     final monthChanged = m != focusedMonth;
     focusedMonth = m;
     notifyListeners();
@@ -182,10 +184,11 @@ class CalendarRepository extends ChangeNotifier {
   }
 
   void shiftMonth(int delta) {
-    focusedMonth = DateTime(focusedMonth.year, focusedMonth.month + delta);
-    final maxDay = DateTime(focusedMonth.year, focusedMonth.month + 1, 0).day;
-    final day = selectedDay.day > maxDay ? maxDay : selectedDay.day;
-    selectedDay = DateTime(focusedMonth.year, focusedMonth.month, day);
+    // Keep the same day-of-month where possible (clamped to month length).
+    final dom = dayNum(selectedDay);
+    focusedMonth = shiftMonths(focusedMonth, delta);
+    final maxDay = daysInMonthOf(focusedMonth);
+    selectedDay = addDays(focusedMonth, (dom > maxDay ? maxDay : dom) - 1);
     notifyListeners();
     if (hasDeviceAccess) reload();
   }
@@ -230,6 +233,7 @@ class CalendarRepository extends ChangeNotifier {
     int colorIndex = 0,
     String? calendarId,
   }) async {
+    String? warning;
     if (calendarId != null && hasDeviceAccess) {
       try {
         var e = end;
@@ -248,9 +252,11 @@ class CalendarRepository extends ChangeNotifier {
         await _prefs?.setString('default_calendar', calendarId);
         await reload();
         return null;
-      } catch (e) {
-        return 'Could not save to that calendar. Saved on this phone only.'
-            ' ($e)';
+      } catch (_) {
+        // Fall through and keep it locally so nothing the user typed is lost.
+        warning = t(
+          'Could not save to that calendar. Saved on this phone only.',
+        );
       }
     }
     _local.add(
@@ -265,7 +271,7 @@ class CalendarRepository extends ChangeNotifier {
       ),
     );
     await _persist();
-    return null;
+    return warning;
   }
 
   Future<void> addReminder(String title, DateTime when) async {
@@ -353,6 +359,22 @@ class CalendarRepository extends ChangeNotifier {
   }
 
   // ------------------------------------------------------------ settings
+  Future<void> setLanguage(String lang) async {
+    AppLocale.lang = lang;
+    await _prefs?.setString('language', lang);
+    notifyListeners();
+    WidgetSync.push(allEvents, weekStartsMonday: weekStartsMonday);
+  }
+
+  Future<void> setEthiopian(bool v) async {
+    AppLocale.ethiopian = v;
+    focusedMonth = monthStart(selectedDay);
+    await _prefs?.setBool('ethiopian', v);
+    notifyListeners();
+    WidgetSync.push(allEvents, weekStartsMonday: weekStartsMonday);
+    if (hasDeviceAccess) reload();
+  }
+
   Future<void> completeOnboarding() async {
     onboarded = true;
     await _prefs?.setBool('onboarded', true);

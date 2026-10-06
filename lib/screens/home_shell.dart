@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+
+import '../core/locale.dart';
+
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
@@ -76,7 +79,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
                         fit: BoxFit.scaleDown,
                         alignment: Alignment.centerLeft,
                         child: PillToggle(
-                          labels: const ['Today', 'Calendar', 'Widgets'],
+                          labels: [t('Today'), t('Calendar'), t('Widgets')],
                           index: _tab,
                           onChanged: _go,
                         ),
@@ -106,7 +109,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
                       child: RoundIconButton(
                         icon: Icons.tune_rounded,
                         size: 44,
-                        tooltip: 'Settings',
+                        tooltip: t('Settings'),
                         onTap: () => showSettingsSheet(context),
                       ),
                     ),
@@ -118,7 +121,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
                         size: 48,
                         background: AppColors.ink,
                         foreground: Colors.white,
-                        tooltip: 'New event',
+                        tooltip: t('New event'),
                         onTap: () {
                           HapticFeedback.lightImpact();
                           showEventEditor(context);

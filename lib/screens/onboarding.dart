@@ -1,10 +1,14 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+
+import '../core/locale.dart';
+
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../core/dates.dart';
+import '../core/ethiopian.dart';
 import '../core/theme.dart';
 import '../services/calendar_repository.dart';
 import '../widgets/common.dart';
@@ -58,8 +62,10 @@ class OnboardingScreen extends StatefulWidget {
 }
 
 class _OnboardingScreenState extends State<OnboardingScreen> {
-  final _pc = PageController();
-  double _page = 0;
+  // Survives the remount that happens when the language is switched.
+  static int _resumePage = 0;
+  late final _pc = PageController(initialPage: _resumePage);
+  late double _page = _resumePage.toDouble();
 
   @override
   void initState() {
@@ -94,6 +100,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     final repo = context.read<CalendarRepository>();
     final nav = Navigator.of(context);
     if (connect) await repo.connectDeviceCalendars();
+    _resumePage = 0;
     await repo.completeOnboarding();
     nav.pushReplacement(
       PageRouteBuilder(
@@ -152,23 +159,27 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     padding: const EdgeInsets.fromLTRB(22, 8, 12, 0),
                     child: Row(
                       children: [
-                        Text(
-                          'Glass Calendar',
-                          style: TextStyle(
-                            color: fg,
-                            fontWeight: FontWeight.w800,
-                            fontSize: 15,
-                            letterSpacing: -.2,
+                        Expanded(
+                          child: Text(
+                            'Glass Calendar',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: fg,
+                              fontWeight: FontWeight.w800,
+                              fontSize: 15,
+                              letterSpacing: -.2,
+                            ),
                           ),
                         ),
-                        const Spacer(),
+                        _LangChip(fg: fg),
                         AnimatedOpacity(
                           duration: Motion.fast,
                           opacity: _last ? 0 : 1,
                           child: TextButton(
                             onPressed: _last ? null : () => _finish(),
                             child: Text(
-                              'Skip',
+                              t('Skip'),
                               style: TextStyle(
                                 color: fg.withValues(alpha: .7),
                                 fontWeight: FontWeight.w600,
@@ -183,7 +194,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     child: PageView.builder(
                       controller: _pc,
                       itemCount: _pages.length,
-                      onPageChanged: (_) => HapticFeedback.selectionClick(),
+                      onPageChanged: (i) {
+                        _resumePage = i;
+                        HapticFeedback.selectionClick();
+                      },
                       itemBuilder: (context, i) {
                         final delta = i - _page; // -1..1 while swiping
                         return _PageBody(
@@ -211,29 +225,35 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     child: _last
                         ? Padding(
                             padding: const EdgeInsets.fromLTRB(24, 0, 24, 18),
-                            child: SizedBox(
-                              width: double.infinity,
-                              child: FilledButton.icon(
-                                style: FilledButton.styleFrom(
-                                  backgroundColor: AppColors.ink,
-                                  foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 18,
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(40),
+                            child: Column(
+                              children: [
+                                const _CalendarChoice(),
+                                const SizedBox(height: 14),
+                                SizedBox(
+                                  width: double.infinity,
+                                  child: FilledButton.icon(
+                                    style: FilledButton.styleFrom(
+                                      backgroundColor: AppColors.ink,
+                                      foregroundColor: Colors.white,
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 18,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(40),
+                                      ),
+                                    ),
+                                    onPressed: () => _finish(connect: true),
+                                    icon: const Icon(Icons.sync),
+                                    label: Text(
+                                      t('Connect my calendars'),
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 16,
+                                      ),
+                                    ),
                                   ),
                                 ),
-                                onPressed: () => _finish(connect: true),
-                                icon: const Icon(Icons.sync),
-                                label: const Text(
-                                  'Connect my calendars',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 16,
-                                  ),
-                                ),
-                              ),
+                              ],
                             ),
                           )
                         : const SizedBox(width: double.infinity),
@@ -292,7 +312,7 @@ class _PageBody extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    page.kicker,
+                    t(page.kicker),
                     style: TextStyle(
                       color: fg.withValues(alpha: .55),
                       fontWeight: FontWeight.w800,
@@ -302,7 +322,7 @@ class _PageBody extends StatelessWidget {
                   ),
                   const SizedBox(height: 10),
                   Text(
-                    page.title,
+                    t(page.title),
                     style: TextStyle(
                       color: fg,
                       fontSize: 40,
@@ -313,7 +333,7 @@ class _PageBody extends StatelessWidget {
                   ),
                   const SizedBox(height: 14),
                   Text(
-                    page.body,
+                    t(page.body),
                     style: TextStyle(
                       color: fg.withValues(alpha: .72),
                       fontSize: 16,
@@ -392,7 +412,7 @@ class _NextButton extends StatelessWidget {
             duration: Motion.fast,
             child: last
                 ? Text(
-                    'Maybe later',
+                    t('Maybe later'),
                     key: const ValueKey('l'),
                     maxLines: 1,
                     style: TextStyle(
@@ -495,10 +515,10 @@ class _CardsArt extends StatelessWidget {
                 angle: -.08,
                 child: _card(
                   palettes[0],
-                  'Design review',
+                  t('Design review'),
                   '10:00',
                   '11:00',
-                  '1 h',
+                  fmtDuration(const Duration(hours: 1)),
                 ),
               ),
             ),
@@ -511,10 +531,10 @@ class _CardsArt extends StatelessWidget {
                 angle: .05,
                 child: _card(
                   palettes[4],
-                  'You have\na meeting',
+                  t('You have\na meeting'),
                   '3:00',
                   '3:30',
-                  '30 Min',
+                  fmtDuration(const Duration(minutes: 30)),
                 ),
               ),
             ),
@@ -525,7 +545,13 @@ class _CardsArt extends StatelessWidget {
               phase: .66,
               child: Transform.rotate(
                 angle: -.03,
-                child: _card(palettes[2], 'Call Wiz', '4:20', '4:45', '25 Min'),
+                child: _card(
+                  palettes[2],
+                  t('Call Wiz'),
+                  '4:20',
+                  '4:45',
+                  fmtDuration(const Duration(minutes: 25)),
+                ),
               ),
             ),
           ),
@@ -570,8 +596,8 @@ class _GlassArt extends StatelessWidget {
                                 color: Colors.white,
                                 borderRadius: BorderRadius.circular(30),
                               ),
-                              child: const Text(
-                                'Weekly',
+                              child: Text(
+                                t('Weekly'),
                                 style: TextStyle(
                                   fontWeight: FontWeight.w600,
                                   fontSize: 13,
@@ -582,7 +608,7 @@ class _GlassArt extends StatelessWidget {
                           Expanded(
                             child: Center(
                               child: Text(
-                                'Monthly',
+                                t('Monthly'),
                                 style: TextStyle(
                                   color: Colors.white.withValues(alpha: .7),
                                   fontWeight: FontWeight.w600,
@@ -617,7 +643,7 @@ class _GlassArt extends StatelessWidget {
                   ),
                   const SizedBox(width: 12),
                   Text(
-                    '${now.day}',
+                    '${dayNum(now)}',
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 40,
@@ -657,7 +683,7 @@ class _GlassArt extends StatelessWidget {
                                   borderRadius: BorderRadius.circular(10),
                                 ),
                                 child: Text(
-                                  '${d.day}',
+                                  '${dayNum(d)}',
                                   style: TextStyle(
                                     color: sel ? Colors.black : Colors.white,
                                     fontWeight: FontWeight.w600,
@@ -724,8 +750,8 @@ class _IslandArtState extends State<_IslandArt>
                     children: [
                       Row(
                         children: [
-                          const Text(
-                            'Day',
+                          Text(
+                            t('Day'),
                             style: TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.w700,
@@ -783,7 +809,7 @@ class _IslandArtState extends State<_IslandArt>
                 borderRadius: BorderRadius.circular(30),
                 border: Border.all(color: Colors.white.withValues(alpha: .08)),
               ),
-              child: const Row(
+              child: Row(
                 children: [
                   Icon(Icons.bolt_rounded, color: Colors.white, size: 28),
                   SizedBox(width: 12),
@@ -792,7 +818,7 @@ class _IslandArtState extends State<_IslandArt>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Next up · in 25 min',
+                          '${t('Next up')} · ${fmtCountdown(const Duration(minutes: 25))}',
                           style: TextStyle(
                             color: Color(0xFF9A9A9A),
                             fontSize: 13,
@@ -801,7 +827,7 @@ class _IslandArtState extends State<_IslandArt>
                         ),
                         SizedBox(height: 2),
                         Text(
-                          'Design review',
+                          t('Design review'),
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: 20,
@@ -899,7 +925,7 @@ class _SyncArtState extends State<_SyncArt>
                     ),
                   ),
                   Text(
-                    '${DateTime.now().day}',
+                    '${dayNum(DateTime.now())}',
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 40,
@@ -955,3 +981,137 @@ class _SyncArtState extends State<_SyncArt>
     );
   }
 }
+
+/// Compact EN / አማ switch in the onboarding top bar.
+class _LangChip extends StatelessWidget {
+  const _LangChip({required this.fg});
+  final Color fg;
+
+  @override
+  Widget build(BuildContext context) {
+    final repo = context.watch<CalendarRepository>();
+    final am = repo.language == 'am';
+    Widget seg(String label, bool sel, String lang) => GestureDetector(
+      onTap: () {
+        HapticFeedback.selectionClick();
+        repo.setLanguage(lang);
+      },
+      child: AnimatedContainer(
+        duration: Motion.fast,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: sel ? fg : Colors.transparent,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: sel
+                ? (fg.computeLuminance() > .5 ? Colors.black : Colors.white)
+                : fg.withValues(alpha: .7),
+            fontWeight: FontWeight.w700,
+            fontSize: 12.5,
+          ),
+        ),
+      ),
+    );
+    return Container(
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(
+        border: Border.all(color: fg.withValues(alpha: .25)),
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [seg('EN', !am, 'en'), seg('አማ', am, 'am')],
+      ),
+    );
+  }
+}
+
+/// Gregorian / Ethiopian choice on the last onboarding page.
+class _CalendarChoice extends StatelessWidget {
+  const _CalendarChoice();
+
+  @override
+  Widget build(BuildContext context) {
+    final repo = context.watch<CalendarRepository>();
+    final now = DateTime.now();
+    final eth = toEthiopian(now);
+    Widget option(bool ethiopian, String title, String sample) {
+      final sel = repo.ethiopian == ethiopian;
+      return Expanded(
+        child: Pressable(
+          child: GestureDetector(
+            onTap: () {
+              HapticFeedback.selectionClick();
+              repo.setEthiopian(ethiopian);
+            },
+            child: AnimatedContainer(
+              duration: Motion.medium,
+              curve: Motion.ease,
+              padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+              decoration: BoxDecoration(
+                color: sel ? AppColors.ink : Colors.white,
+                borderRadius: BorderRadius.circular(22),
+                border: Border.all(
+                  color: AppColors.ink.withValues(alpha: sel ? 1 : .12),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      color: sel ? Colors.white : AppColors.ink,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    sample,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: sel ? Colors.white70 : AppColors.mute,
+                      fontSize: 12.5,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    final gregSample =
+        '${AppLocale.am ? _gregAm[now.month - 1] : monthNames[now.month - 1].substring(0, 3)} ${now.day}, ${now.year}';
+    final ethSample =
+        '${AppLocale.am ? ethMonthsAm[eth.month - 1] : ethMonthsEn[eth.month - 1]} ${eth.day}, ${eth.year}';
+    return Row(
+      children: [
+        option(false, t('Gregorian'), gregSample),
+        const SizedBox(width: 10),
+        option(true, t('Ethiopian'), ethSample),
+      ],
+    );
+  }
+}
+
+const _gregAm = [
+  'ጃንዩወሪ',
+  'ፌብሩወሪ',
+  'ማርች',
+  'ኤፕሪል',
+  'ሜይ',
+  'ጁን',
+  'ጁላይ',
+  'ኦገስት',
+  'ሴፕቴምበር',
+  'ኦክቶበር',
+  'ኖቬምበር',
+  'ዲሴምበር',
+];

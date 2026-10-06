@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
+
+import '../core/locale.dart';
+
 import 'package:provider/provider.dart';
 
 import '../core/dates.dart';
 import '../core/theme.dart';
 import '../models/event_item.dart';
 import '../services/calendar_repository.dart';
+import '../widgets/cal_date_picker.dart';
 import '../widgets/common.dart';
 
 /// Bottom sheet to create / edit an event or reminder.
@@ -110,7 +114,7 @@ class _EventEditorState extends State<_EventEditor> {
   Future<void> _save() async {
     final title = _title.text.trim();
     if (title.isEmpty) {
-      showSnack(context, 'Give it a title first');
+      showSnack(context, t('Give it a title first'));
       return;
     }
     final repo = context.read<CalendarRepository>();
@@ -199,8 +203,8 @@ class _EventEditorState extends State<_EventEditor> {
                   Expanded(
                     child: Text(
                       editing
-                          ? 'Edit ${_isReminder ? 'reminder' : 'event'}'
-                          : 'New',
+                          ? t(_isReminder ? 'Edit reminder' : 'Edit event')
+                          : t('New'),
                       style: const TextStyle(
                         fontSize: 26,
                         fontWeight: FontWeight.w700,
@@ -210,7 +214,7 @@ class _EventEditorState extends State<_EventEditor> {
                   ),
                   if (!editing)
                     PillToggle(
-                      labels: const ['Event', 'Reminder'],
+                      labels: [t('Event'), t('Reminder')],
                       index: _isReminder ? 1 : 0,
                       onChanged: (i) => setState(() => _isReminder = i == 1),
                     ),
@@ -218,7 +222,7 @@ class _EventEditorState extends State<_EventEditor> {
                     RoundIconButton(
                       icon: Icons.delete_outline,
                       onTap: _delete,
-                      tooltip: 'Delete',
+                      tooltip: t('Delete'),
                     ),
                 ],
               ),
@@ -232,7 +236,7 @@ class _EventEditorState extends State<_EventEditor> {
                   fontWeight: FontWeight.w600,
                 ),
                 decoration: InputDecoration(
-                  hintText: _isReminder ? 'Remind me to…' : 'Event title',
+                  hintText: _isReminder ? t('Remind me to…') : t('Event title'),
                   border: InputBorder.none,
                 ),
               ),
@@ -240,13 +244,12 @@ class _EventEditorState extends State<_EventEditor> {
               const SizedBox(height: 8),
               _row(
                 Icons.event_outlined,
-                '${weekdayName(_date)}, ${monthShort(_date)} ${_date.day}, ${_date.year}',
+                '${weekdayName(_date)}, ${fmtDate(_date)}',
                 onTap: () async {
-                  final d = await showDatePicker(
-                    context: context,
-                    initialDate: _date,
-                    firstDate: DateTime(2000),
-                    lastDate: DateTime(2100),
+                  final d = await showCalDatePicker(
+                    context,
+                    initial: _date,
+                    weekStartsMonday: repo.weekStartsMonday,
                   );
                   if (d != null) setState(() => _date = dateOnly(d));
                 },
@@ -312,9 +315,9 @@ class _EventEditorState extends State<_EventEditor> {
               if (!_isReminder) ...[
                 TextField(
                   controller: _location,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     icon: Icon(Icons.place_outlined),
-                    hintText: 'Location',
+                    hintText: t('Location'),
                     border: InputBorder.none,
                   ),
                 ),
@@ -398,8 +401,8 @@ class _EventEditorState extends State<_EventEditor> {
                   onPressed: _saving ? null : _save,
                   child: Text(
                     editing
-                        ? 'Save changes'
-                        : (_isReminder ? 'Add reminder' : 'Add event'),
+                        ? t('Save changes')
+                        : (_isReminder ? t('Add reminder') : t('Add event')),
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,

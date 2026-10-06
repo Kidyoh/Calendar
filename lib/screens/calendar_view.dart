@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../core/dates.dart';
+import '../core/locale.dart';
 import '../core/theme.dart';
 import '../models/event_item.dart';
 import '../services/calendar_repository.dart';
@@ -16,12 +17,12 @@ class CalendarView extends StatelessWidget {
   Widget build(BuildContext context) {
     final repo = context.watch<CalendarRepository>();
     final month = repo.focusedMonth;
-    final daysInMonth = DateTime(month.year, month.month + 1, 0).day;
+    final daysInMonth = daysInMonthOf(month);
     final days = <DateTime>[
       for (var d = 1; d <= daysInMonth; d++)
-        if (repo.hasEvents(DateTime(month.year, month.month, d)) ||
-            sameDay(DateTime(month.year, month.month, d), repo.selectedDay))
-          DateTime(month.year, month.month, d),
+        if (repo.hasEvents(addDays(month, d - 1)) ||
+            sameDay(addDays(month, d - 1), repo.selectedDay))
+          addDays(month, d - 1),
     ];
 
     return GestureDetector(
@@ -45,9 +46,7 @@ class CalendarView extends StatelessWidget {
             AnimatedSwitcher(
               duration: const Duration(milliseconds: 280),
               child: Column(
-                key: ValueKey(
-                  '${month.year}-${month.month}-${repo.selectedDay.day}',
-                ),
+                key: ValueKey('${dayKey(month)}-${dayKey(repo.selectedDay)}'),
                 children: [
                   for (var i = 0; i < days.length; i++)
                     FadeSlideIn.stagger(
@@ -58,7 +57,7 @@ class CalendarView extends StatelessWidget {
                           scale: .98,
                           child: DayCard(
                             day: days[i],
-                            palette: paletteAt(days[i].day),
+                            palette: paletteAt(dayNum(days[i])),
                             onOpenDay: onOpenDay,
                           ),
                         ),
@@ -80,8 +79,8 @@ class _MonthSwitcher extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final m = repo.focusedMonth;
-    final prev = DateTime(m.year, m.month - 1);
-    final next = DateTime(m.year, m.month + 1);
+    final prev = shiftMonths(m, -1);
+    final next = shiftMonths(m, 1);
     Widget ghost(DateTime d, int delta) => Expanded(
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
@@ -124,7 +123,7 @@ class _MonthSwitcher extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  '${m.year}',
+                  '${yearNum(m)}',
                   style: const TextStyle(
                     fontSize: 11,
                     color: AppColors.mute,
@@ -152,9 +151,9 @@ class _MonthGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final m = repo.focusedMonth;
-    final first = DateTime(m.year, m.month, 1);
+    final first = m;
     final gridStart = startOfWeek(first, monday: repo.weekStartsMonday);
-    final count = DateTime(m.year, m.month + 1, 0).day;
+    final count = daysInMonthOf(m);
     final weeks = ((first.difference(gridStart).inDays + count) / 7).ceil();
     return Container(
       padding: const EdgeInsets.fromLTRB(8, 12, 8, 8),
@@ -190,7 +189,7 @@ class _MonthGrid extends StatelessWidget {
                     child: Builder(
                       builder: (_) {
                         final d = addDays(gridStart, w * 7 + i);
-                        final inMonth = d.month == m.month;
+                        final inMonth = sameMonth(d, m);
                         final sel = sameDay(d, repo.selectedDay);
                         final today = sameDay(d, DateTime.now());
                         return GestureDetector(
@@ -219,7 +218,7 @@ class _MonthGrid extends StatelessWidget {
                                         : null,
                                   ),
                                   child: Text(
-                                    '${d.day}',
+                                    '${dayNum(d)}',
                                     style: TextStyle(
                                       fontWeight: sel
                                           ? FontWeight.w800
@@ -241,7 +240,7 @@ class _MonthGrid extends StatelessWidget {
                                   decoration: BoxDecoration(
                                     shape: BoxShape.circle,
                                     color: repo.hasEvents(d)
-                                        ? paletteAt(d.day).chip
+                                        ? paletteAt(dayNum(d)).chip
                                         : Colors.transparent,
                                   ),
                                 ),
@@ -328,7 +327,7 @@ class DayCard extends StatelessWidget {
                         fit: BoxFit.scaleDown,
                         alignment: Alignment.centerLeft,
                         child: Text(
-                          '${day.day}\n${monthShort(day).toUpperCase()}',
+                          '${dayNum(day)}\n${monthShort(day).toUpperCase()}',
                           style: TextStyle(
                             color: palette.fg,
                             fontSize: 52,
@@ -373,7 +372,11 @@ class DayCard extends StatelessWidget {
               runSpacing: 6,
               children: [
                 for (final e in allDay)
-                  _Chip(event: e, palette: palette, prefix: 'All day · '),
+                  _Chip(
+                    event: e,
+                    palette: palette,
+                    prefix: '${t('All day')} · ',
+                  ),
                 if (overflow.isNotEmpty)
                   GestureDetector(
                     onTap: () {
@@ -382,7 +385,7 @@ class DayCard extends StatelessWidget {
                     },
                     child: _ChipBox(
                       palette: palette,
-                      text: '+${overflow.length} more',
+                      text: '+${overflow.length} ${t('more')}',
                       outlined: true,
                     ),
                   ),

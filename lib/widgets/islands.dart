@@ -52,7 +52,10 @@ class _TickerState extends State<Ticker> {
 
 /// Island 1: month, event count and a Mo..Su strip.
 class IslandWeek extends StatelessWidget {
-  const IslandWeek({super.key});
+  const IslandWeek({super.key, this.instanceId = 'island-1'});
+
+  /// Widget instance (each island swipes its own calendar).
+  final String instanceId;
 
   @override
   Widget build(BuildContext context) {
@@ -60,7 +63,7 @@ class IslandWeek extends StatelessWidget {
     final sel = repo.selectedDay;
     final start = startOfWeek(sel, monday: repo.weekStartsMonday);
     final n = repo.eventsOn(sel, includeReminders: false).length;
-    final face = repo.widgetFace;
+    final face = repo.faceOf(instanceId);
     final view = faceView(face, sel);
     // Swipe sideways to switch Gregorian · Ethiopian · Islamic · Orthodox.
     return GestureDetector(
@@ -68,7 +71,7 @@ class IslandWeek extends StatelessWidget {
         final v = d.primaryVelocity ?? 0;
         if (v.abs() > 150) {
           HapticFeedback.selectionClick();
-          repo.cycleWidgetFace(v < 0 ? 1 : -1);
+          repo.cycleFaceFor(instanceId, v < 0 ? 1 : -1);
         }
       },
       child: Island(

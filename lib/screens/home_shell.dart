@@ -47,7 +47,6 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
       // Reminders may have been completed/snoozed from a notification.
       repo
           .reloadLocal()
-          .then((_) => repo.syncFaceFromHomeWidget())
           .then((_) => repo.refreshPermission())
           .then((_) => repo.reload());
     }

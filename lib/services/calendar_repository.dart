@@ -14,6 +14,24 @@ import '../models/event_item.dart';
 import 'notification_service.dart';
 import 'widget_sync.dart';
 
+/// One widget on the Widgets tab. Each has its own calendar face.
+class WidgetInstance {
+  WidgetInstance(this.id, this.type, this.face);
+  final String id;
+  final String type; // 'glass' | 'island'
+  CalFace face;
+
+  Map<String, dynamic> toJson() => {'id': id, 'type': type, 'face': face.index};
+  factory WidgetInstance.fromJson(Map<String, dynamic> j) => WidgetInstance(
+    j['id'] as String,
+    j['type'] as String,
+    CalFace.values[((j['face'] as int?) ?? 0).clamp(
+      0,
+      CalFace.values.length - 1,
+    )],
+  );
+}
+
 /// A world-clock choice for the second clock on the Today screen.
 const zoneChoices = <String, String>{
   'America/New_York': 'New York',
@@ -60,8 +78,12 @@ class CalendarRepository extends ChangeNotifier {
   bool showIslamic = true;
   bool showSaints = false;
 
-  /// Which calendar the widgets show (swiped in-app, ⇄ on the home screen).
-  CalFace widgetFace = CalFace.gregorian;
+  /// In-app widgets, each with its own calendar face (swipe to change).
+  List<WidgetInstance> widgets = [];
+
+  /// Default face for newly added widgets (and new home-screen widgets).
+  CalFace get widgetFace =>
+      widgets.isEmpty ? CalFace.gregorian : widgets.first.face;
 
   /// Notification preferences (event alerts, reminders, morning briefing).
   final notify = NotifySettings();
@@ -102,15 +124,12 @@ class CalendarRepository extends ChangeNotifier {
     showOrthodox = _prefs!.getBool('hol_orthodox') ?? true;
     showIslamic = _prefs!.getBool('hol_islamic') ?? true;
     showSaints = _prefs!.getBool('hol_saints') ?? false;
-    final savedFace = _prefs!.getInt('widget_face');
-    widgetFace = savedFace != null && savedFace < CalFace.values.length
-        ? CalFace.values[savedFace]
-        : (AppLocale.ethiopian ? CalFace.ethiopian : CalFace.gregorian);
     // First run on an Amharic phone defaults to Amharic + Ethiopian calendar.
     final amPhone = PlatformDispatcher.instance.locale.languageCode == 'am';
     AppLocale.lang = _prefs!.getString('language') ?? (amPhone ? 'am' : 'en');
     AppLocale.ethiopian = _prefs!.getBool('ethiopian') ?? amPhone;
     focusedMonth = monthStart(selectedDay);
+    _loadWidgets();
     defaultCalendarId = _prefs!.getString('default_calendar');
     try {
       localZoneId = (await FlutterTimezone.getLocalTimezone()).identifier;
@@ -125,23 +144,8 @@ class CalendarRepository extends ChangeNotifier {
       ..holidays = _prefs!.getBool('n_holidays') ?? true;
     NotificationService.onRemindersChanged = () => reloadLocal();
     await NotificationService.init();
-    await syncFaceFromHomeWidget(notify: false);
     await refreshPermission();
     await reload();
-  }
-
-  /// Adopt the face picked with ⇄ on a home-screen widget.
-  Future<void> syncFaceFromHomeWidget({bool notify = true}) async {
-    final f = await WidgetSync.readFace();
-    if (f == null ||
-        f < 0 ||
-        f >= CalFace.values.length ||
-        f == widgetFace.index) {
-      return;
-    }
-    widgetFace = CalFace.values[f];
-    await _prefs?.setInt('widget_face', f);
-    if (notify) notifyListeners();
   }
 
   Future<void> refreshPermission() async {
@@ -538,18 +542,86 @@ class CalendarRepository extends ChangeNotifier {
     holidayToday: holidaysFor(DateTime.now()).map((h) => h.name).join(' · '),
   );
 
-  Future<void> setWidgetFace(CalFace f) async {
-    if (f == widgetFace) return;
-    widgetFace = f;
-    await _prefs?.setInt('widget_face', f.index);
-    notifyListeners();
-    _pushWidgets();
+  // ------------------------------------------------------- widget instances
+  void _loadWidgets() {
+    final raw = _prefs?.getString('widgets_v1');
+    if (raw != null) {
+      try {
+        widgets = (jsonDecode(raw) as List)
+            .map((e) => WidgetInstance.fromJson(e as Map<String, dynamic>))
+            .toList();
+        return;
+      } catch (_) {}
+    }
+    // First run / upgrade: one glass + one island, keeping any earlier choice.
+    final old = _prefs?.getInt('widget_face');
+    final start = old != null && old < CalFace.values.length
+        ? CalFace.values[old]
+        : (AppLocale.ethiopian ? CalFace.ethiopian : CalFace.gregorian);
+    widgets = [
+      WidgetInstance('glass-1', 'glass', start),
+      WidgetInstance('island-1', 'island', start),
+    ];
   }
 
-  /// Swipe helper: next (+1) or previous (-1) face, wrapping around.
-  void cycleWidgetFace(int dir) => setWidgetFace(
-    CalFace.values[(widgetFace.index + dir) % CalFace.values.length],
+  Future<void> _saveWidgets() async {
+    await _prefs?.setString(
+      'widgets_v1',
+      jsonEncode(widgets.map((w) => w.toJson()).toList()),
+    );
+  }
+
+  WidgetInstance? widgetById(String id) {
+    for (final w in widgets) {
+      if (w.id == id) return w;
+    }
+    return null;
+  }
+
+  CalFace faceOf(String id) => widgetById(id)?.face ?? widgetFace;
+
+  Future<void> setFaceFor(String id, CalFace f) async {
+    final w = widgetById(id);
+    if (w == null || w.face == f) return;
+    w.face = f;
+    await _saveWidgets();
+    notifyListeners();
+    if (widgets.first.id == id) _pushWidgets(); // default for new home widgets
+  }
+
+  /// Swipe helper: next (+1) or previous (-1) face of one widget, wrapping.
+  void cycleFaceFor(String id, int dir) => setFaceFor(
+    id,
+    CalFace.values[(faceOf(id).index + dir) % CalFace.values.length],
   );
+
+  Future<String> addWidget(String type, {CalFace? face}) async {
+    final n = widgets.where((w) => w.type == type).length + 1;
+    var id = '$type-$n';
+    while (widgetById(id) != null) {
+      id = '$type-${DateTime.now().microsecondsSinceEpoch}';
+    }
+    widgets.add(WidgetInstance(id, type, face ?? widgetFace));
+    await _saveWidgets();
+    notifyListeners();
+    return id;
+  }
+
+  /// Removes a widget; returns it and its position so it can be restored (Undo).
+  Future<(WidgetInstance, int)?> removeWidget(String id) async {
+    final i = widgets.indexWhere((w) => w.id == id);
+    if (i < 0) return null;
+    final w = widgets.removeAt(i);
+    await _saveWidgets();
+    notifyListeners();
+    return (w, i);
+  }
+
+  Future<void> restoreWidget(WidgetInstance w, int index) async {
+    widgets.insert(index.clamp(0, widgets.length), w);
+    await _saveWidgets();
+    notifyListeners();
+  }
 
   Future<void> completeOnboarding() async {
     onboarded = true;

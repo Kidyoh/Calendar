@@ -7,6 +7,7 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
+import android.net.Uri
 import android.widget.RemoteViews
 import java.util.Calendar
 import org.json.JSONObject
@@ -74,7 +75,7 @@ object WidgetRenderer {
             if (p.size == 2) p[0] to (p[1].toIntOrNull() ?: 0) else null
         }.toMap()
 
-    fun render(context: Context, glass: Boolean): RemoteViews {
+    fun render(context: Context, glass: Boolean, widgetId: Int): RemoteViews {
         val prefs = context.getSharedPreferences("HomeWidgetPreferences", Context.MODE_PRIVATE)
         val views = RemoteViews(
             context.packageName,
@@ -93,7 +94,7 @@ object WidgetRenderer {
         val eth = prefs.getString("eth", "0") == "1"
         val am = prefs.getString("lang", "en") == "am"
         // Calendar face: 0 Gregorian · 1 Ethiopian · 2 Islamic · 3 Orthodox.
-        val face = (prefs.getString("face", if (eth) "1" else "0") ?: "0").toIntOrNull()?.coerceIn(0, 3) ?: 0
+        val face = faceOf(context, widgetId, eth)
         val faceDays = parseFaceDays(prefs.getString("face_days", ""))
         val faceToday = faceFor(prefs.getString("faces", ""), key(today), face)
         val todayEth = Ethiopian.fromCalendar(today)
@@ -170,19 +171,22 @@ object WidgetRenderer {
         if (launch != null) {
             launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED)
             val pi = PendingIntent.getActivity(
-                context, if (glass) 1 else 2, launch,
+                context, 100000 + widgetId, launch,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
             views.setOnClickPendingIntent(R.id.root, pi)
         }
+        // ⇄ cycles the calendar of *this* widget only.
         val cycle = Intent(
             context,
             if (glass) GlassWidgetProvider::class.java else IslandWidgetProvider::class.java
         ).setAction(ACTION_CYCLE_FACE)
+            .putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId)
+            .setData(Uri.parse("glasscalendar://cycle/$widgetId")) // keeps each PendingIntent distinct
         views.setOnClickPendingIntent(
             if (glass) R.id.face_label else R.id.month,
             PendingIntent.getBroadcast(
-                context, if (glass) 11 else 12, cycle,
+                context, widgetId, cycle,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
         )
@@ -204,42 +208,77 @@ object WidgetRenderer {
         null
     }
 
-    /** ⇄ tapped: next calendar face, then redraw every widget. */
-    fun cycleFace(context: Context) {
-        val prefs = context.getSharedPreferences("HomeWidgetPreferences", Context.MODE_PRIVATE)
-        val cur = (prefs.getString("face", "0") ?: "0").toIntOrNull() ?: 0
-        prefs.edit().putString("face", ((cur + 1) % 4).toString()).apply()
-        refreshAll(context)
+    private fun prefs(context: Context) = context.getSharedPreferences("HomeWidgetPreferences", Context.MODE_PRIVATE)
+
+    /** Calendar face of one widget instance; new widgets start on the app's default. */
+    fun faceOf(context: Context, widgetId: Int, eth: Boolean = false): Int {
+        val p = prefs(context)
+        p.getString("face_$widgetId", null)?.toIntOrNull()?.let { return it.coerceIn(0, 3) }
+        val def = (p.getString("face", if (eth) "1" else "0") ?: "0").toIntOrNull()?.coerceIn(0, 3) ?: 0
+        p.edit().putString("face_$widgetId", def.toString()).apply()
+        return def
+    }
+
+    fun setFace(context: Context, widgetId: Int, face: Int) {
+        prefs(context).edit().putString("face_$widgetId", (face.mod(4)).toString()).apply()
+    }
+
+    fun forget(context: Context, ids: IntArray) {
+        val e = prefs(context).edit()
+        for (id in ids) e.remove("face_$id")
+        e.apply()
+    }
+
+    /** ⇄ tapped on one widget: advance only that widget. */
+    fun cycleFace(context: Context, widgetId: Int, glass: Boolean) {
+        if (widgetId == AppWidgetManager.INVALID_APPWIDGET_ID) return
+        setFace(context, widgetId, faceOf(context, widgetId) + 1)
+        AppWidgetManager.getInstance(context).updateAppWidget(widgetId, render(context, glass, widgetId))
     }
 
     fun refreshAll(context: Context) {
         val manager = AppWidgetManager.getInstance(context)
         for ((cls, glass) in listOf(GlassWidgetProvider::class.java to true, IslandWidgetProvider::class.java to false)) {
             for (id in manager.getAppWidgetIds(ComponentName(context, cls))) {
-                manager.updateAppWidget(id, render(context, glass))
+                manager.updateAppWidget(id, render(context, glass, id))
             }
         }
     }
+
+    fun isGlass(context: Context, widgetId: Int): Boolean =
+        AppWidgetManager.getInstance(context).getAppWidgetInfo(widgetId)?.provider?.className?.endsWith("GlassWidgetProvider") ?: true
 }
 
 const val ACTION_CYCLE_FACE = "com.kidyoh.glass_calendar.CYCLE_FACE"
 
 class GlassWidgetProvider : AppWidgetProvider() {
     override fun onUpdate(context: Context, manager: AppWidgetManager, appWidgetIds: IntArray) {
-        for (id in appWidgetIds) manager.updateAppWidget(id, WidgetRenderer.render(context, true))
+        for (id in appWidgetIds) manager.updateAppWidget(id, WidgetRenderer.render(context, true, id))
     }
 
+    override fun onDeleted(context: Context, appWidgetIds: IntArray) = WidgetRenderer.forget(context, appWidgetIds)
+
     override fun onReceive(context: Context, intent: Intent) {
-        if (intent.action == ACTION_CYCLE_FACE) WidgetRenderer.cycleFace(context) else super.onReceive(context, intent)
+        if (intent.action == ACTION_CYCLE_FACE) {
+            WidgetRenderer.cycleFace(context, intent.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, AppWidgetManager.INVALID_APPWIDGET_ID), true)
+        } else {
+            super.onReceive(context, intent)
+        }
     }
 }
 
 class IslandWidgetProvider : AppWidgetProvider() {
     override fun onUpdate(context: Context, manager: AppWidgetManager, appWidgetIds: IntArray) {
-        for (id in appWidgetIds) manager.updateAppWidget(id, WidgetRenderer.render(context, false))
+        for (id in appWidgetIds) manager.updateAppWidget(id, WidgetRenderer.render(context, false, id))
     }
 
+    override fun onDeleted(context: Context, appWidgetIds: IntArray) = WidgetRenderer.forget(context, appWidgetIds)
+
     override fun onReceive(context: Context, intent: Intent) {
-        if (intent.action == ACTION_CYCLE_FACE) WidgetRenderer.cycleFace(context) else super.onReceive(context, intent)
+        if (intent.action == ACTION_CYCLE_FACE) {
+            WidgetRenderer.cycleFace(context, intent.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, AppWidgetManager.INVALID_APPWIDGET_ID), false)
+        } else {
+            super.onReceive(context, intent)
+        }
     }
 }

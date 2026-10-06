@@ -84,6 +84,30 @@ void main() {
     expect(fastOn(DateTime(2032, 1, 7)), isNull); // Genna on a Wednesday
   });
 
+  test('Orthodox feasts that are days off are labelled as both', () {
+    Holiday find(DateTime d, String en) =>
+        holidaysOn(d).firstWhere((h) => h.en == en);
+    for (final (d, en) in [
+      (DateTime(2026, 4, 12), 'Fasika (Easter)'),
+      (DateTime(2026, 4, 10), 'Siklet (Good Friday)'),
+      (DateTime(2026, 1, 7), 'Genna (Christmas)'),
+      (DateTime(2026, 1, 19), 'Timket (Epiphany)'),
+      (DateTime(2026, 9, 27), 'Meskel'),
+    ]) {
+      final h = find(d, en);
+      expect(h.kind, HolidayKind.orthodox, reason: en);
+      expect(h.dayOff, isTrue, reason: en);
+    }
+    expect(
+      find(DateTime(2026, 3, 2), 'Adwa Victory Day').kind,
+      HolidayKind.national,
+    );
+    expect(
+      find(DateTime(2026, 9, 11), 'Enkutatash (New Year)').kind,
+      HolidayKind.national,
+    );
+  });
+
   test('monthly saints only when enabled', () {
     final mikael = DateTime(2026, 9, 22); // Meskerem 12
     expect(names(mikael), isNot(contains('Kidus Mikael')));

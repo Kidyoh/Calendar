@@ -387,16 +387,18 @@ class CalendarRepository extends ChangeNotifier {
 
   // ------------------------------------------------------------ holidays
   /// Holidays on [day] for the categories the user has switched on.
-  List<Holiday> holidaysFor(DateTime day) => holidaysOn(day, saints: showSaints)
-      .where(
-        (h) => switch (h.kind) {
+  List<Holiday> holidaysFor(DateTime day) =>
+      holidaysOn(day, saints: showSaints).where((h) {
+        // Days off (e.g. Fasika, Eid) stay visible under "public holidays"
+        // even if their religious category is switched off.
+        if (h.dayOff && showNational) return true;
+        return switch (h.kind) {
           HolidayKind.national => showNational,
           HolidayKind.orthodox => showOrthodox,
           HolidayKind.islamic => showIslamic,
           HolidayKind.saint => showSaints,
-        },
-      )
-      .toList();
+        };
+      }).toList();
 
   /// Orthodox fast on [day] (only when Orthodox feasts & fasts are on).
   FastDay? fastFor(DateTime day) => showOrthodox ? fastOn(day) : null;

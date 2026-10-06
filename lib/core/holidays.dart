@@ -98,14 +98,14 @@ const _fixed = <(int, int, Holiday)>[
     ),
   ),
   (1, 16, Holiday('Demera', 'ደመራ', HolidayKind.orthodox)),
-  (1, 17, Holiday('Meskel', 'መስቀል', HolidayKind.national, dayOff: true)),
+  (1, 17, Holiday('Meskel', 'መስቀል', HolidayKind.orthodox, dayOff: true)),
   (3, 21, Holiday('Hidar Tsion', 'ኅዳር ጽዮን', HolidayKind.orthodox)),
   (4, 19, Holiday('Kulubi Gabriel', 'ቁልቢ ገብርኤል', HolidayKind.orthodox)),
   (5, 10, Holiday('Ketera (Timket Eve)', 'ከተራ', HolidayKind.orthodox)),
   (
     5,
     11,
-    Holiday('Timket (Epiphany)', 'ጥምቀት', HolidayKind.national, dayOff: true),
+    Holiday('Timket (Epiphany)', 'ጥምቀት', HolidayKind.orthodox, dayOff: true),
   ),
   (5, 12, Holiday('Kana Zegelila', 'ቃና ዘገሊላ', HolidayKind.orthodox)),
   (
@@ -156,7 +156,7 @@ const _saints = <int, Holiday>{
 const _genna = Holiday(
   'Genna (Christmas)',
   'ገና (ልደት)',
-  HolidayKind.national,
+  HolidayKind.orthodox,
   dayOff: true,
 );
 const _labour = Holiday(
@@ -199,7 +199,7 @@ class _Year {
       const Holiday(
         'Siklet (Good Friday)',
         'ስቅለት',
-        HolidayKind.national,
+        HolidayKind.orthodox,
         dayOff: true,
       ),
     );
@@ -208,7 +208,7 @@ class _Year {
       const Holiday(
         'Fasika (Easter)',
         'ፋሲካ (ትንሣኤ)',
-        HolidayKind.national,
+        HolidayKind.orthodox,
         dayOff: true,
       ),
     );

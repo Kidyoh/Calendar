@@ -5,6 +5,7 @@ import 'package:timezone/data/latest.dart' as tzdata;
 
 import 'core/theme.dart';
 import 'screens/home_shell.dart';
+import 'screens/onboarding.dart';
 import 'services/calendar_repository.dart';
 
 Future<void> main() async {
@@ -32,6 +33,8 @@ class GlassCalendarApp extends StatelessWidget {
     title: 'Glass Calendar',
     debugShowCheckedModeBanner: false,
     theme: buildTheme(),
-    home: const HomeShell(),
+    home: context.read<CalendarRepository>().onboarded
+        ? const HomeShell()
+        : const OnboardingScreen(),
   );
 }

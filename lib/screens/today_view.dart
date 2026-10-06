@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:timezone/timezone.dart' as tz;
 
@@ -8,6 +9,7 @@ import '../models/event_item.dart';
 import '../services/calendar_repository.dart';
 import '../widgets/common.dart';
 import '../widgets/islands.dart';
+import '../widgets/motion.dart';
 import 'event_editor.dart';
 
 class TodayView extends StatelessWidget {
@@ -25,69 +27,100 @@ class TodayView extends StatelessWidget {
     return RefreshIndicator(
       onRefresh: repo.reload,
       child: LayoutBuilder(
-        builder: (context, box) => SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          child: ConstrainedBox(
-            constraints: BoxConstraints(minHeight: box.maxHeight),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _Header(day: day, isToday: isToday),
-                const SizedBox(height: 14),
-                _WeekChips(repo: repo),
-                const SizedBox(height: 18),
-                Container(
-                  width: double.infinity,
-                  constraints: BoxConstraints(minHeight: box.maxHeight * .55),
-                  padding: const EdgeInsets.fromLTRB(14, 16, 14, 28),
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.vertical(
-                      top: Radius.circular(38),
+        // Cream behind the header, white behind the task panel, so the panel
+        // always reaches the bottom edge however few tasks there are.
+        builder: (context, box) => DecoratedBox(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                AppColors.cream,
+                AppColors.cream,
+                Colors.white,
+                Colors.white,
+              ],
+              stops: [0, .6, .6, 1],
+            ),
+          ),
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: box.maxHeight),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _Header(day: day, isToday: isToday),
+                  const SizedBox(height: 14),
+                  _WeekChips(repo: repo),
+                  const SizedBox(height: 18),
+                  Container(
+                    width: double.infinity,
+                    constraints: BoxConstraints(minHeight: box.maxHeight * .55),
+                    padding: const EdgeInsets.fromLTRB(14, 16, 14, 28),
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.vertical(
+                        top: Radius.circular(38),
+                      ),
                     ),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(8, 0, 0, 12),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                isToday
-                                    ? 'Todays tasks'
-                                    : '${weekdayName(day)}\'s tasks',
-                                style: const TextStyle(
-                                  fontSize: 17,
-                                  fontWeight: FontWeight.w700,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(8, 0, 0, 12),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  isToday
+                                      ? 'Todays tasks'
+                                      : '${weekdayName(day)}\'s tasks',
+                                  style: const TextStyle(
+                                    fontSize: 17,
+                                    fontWeight: FontWeight.w700,
+                                  ),
                                 ),
                               ),
-                            ),
-                            _RemindersPill(
-                              count: repo.reminders
-                                  .where((r) => !r.done)
-                                  .length,
-                            ),
-                          ],
+                              _RemindersPill(
+                                count: repo.reminders
+                                    .where((r) => !r.done)
+                                    .length,
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                      if (!repo.hasDeviceAccess && repo.deviceSyncSupported)
-                        const _ConnectBanner(),
-                      if (events.isEmpty && reminders.isEmpty)
-                        _Empty(isToday: isToday),
-                      for (var i = 0; i < events.length; i++) ...[
-                        TaskCard(
-                          event: events[i],
-                          palette: paletteFor(events[i], i),
-                        ),
-                        const SizedBox(height: 10),
+                        if (!repo.hasDeviceAccess && repo.deviceSyncSupported)
+                          const _ConnectBanner(),
+                        if (events.isEmpty && reminders.isEmpty)
+                          FadeSlideIn(
+                            key: ValueKey('empty-${dayKey(day)}'),
+                            child: _Empty(isToday: isToday),
+                          ),
+                        for (var i = 0; i < events.length; i++) ...[
+                          FadeSlideIn.stagger(
+                            i,
+                            key: ValueKey('${dayKey(day)}-${events[i].id}'),
+                            child: Pressable(
+                              child: TaskCard(
+                                event: events[i],
+                                palette: paletteFor(events[i], i),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                        ],
+                        for (var i = 0; i < reminders.length; i++)
+                          FadeSlideIn.stagger(
+                            events.length + i,
+                            key: ValueKey('${dayKey(day)}-${reminders[i].id}'),
+                            child: _ReminderTile(item: reminders[i]),
+                          ),
                       ],
-                      for (final r in reminders) _ReminderTile(item: r),
-                    ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -113,9 +146,13 @@ class _Header extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
+          RollingText(
             weekdayName(day),
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+              color: AppColors.ink,
+            ),
           ),
           const SizedBox(height: 2),
           IntrinsicHeight(
@@ -130,22 +167,24 @@ class _Header extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
+                        RollingText(
                           '${day.day.toString().padLeft(2, '0')}.${day.month.toString().padLeft(2, '0')}',
                           style: const TextStyle(
                             fontSize: 84,
                             fontWeight: FontWeight.w400,
                             letterSpacing: -4,
                             height: .95,
+                            color: AppColors.ink,
                           ),
                         ),
-                        Text(
+                        RollingText(
                           monthShort(day).toUpperCase(),
                           style: const TextStyle(
                             fontSize: 84,
                             fontWeight: FontWeight.w400,
                             letterSpacing: -4,
                             height: .95,
+                            color: AppColors.ink,
                           ),
                         ),
                       ],
@@ -251,7 +290,10 @@ class _WeekChips extends StatelessWidget {
                     final d = addDays(start, i);
                     final sel = sameDay(d, repo.selectedDay);
                     return GestureDetector(
-                      onTap: () => repo.selectDay(d),
+                      onTap: () {
+                        HapticFeedback.selectionClick();
+                        repo.selectDay(d);
+                      },
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 240),
                         curve: Curves.easeOutCubic,

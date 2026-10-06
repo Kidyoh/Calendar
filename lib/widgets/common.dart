@@ -119,7 +119,7 @@ class PillToggle extends StatelessWidget {
     for (var i = 0; i < labels.length; i++) {
       final sel = i == index;
       final Color bg = glass
-          ? (sel ? Colors.white : Colors.transparent)
+          ? Colors.transparent
           : (sel ? AppColors.ink : Colors.transparent);
       final Color fg = glass
           ? (sel ? AppColors.ink : Colors.white.withValues(alpha: 0.75))
@@ -160,13 +160,42 @@ class PillToggle extends StatelessWidget {
       children: items,
     );
     if (!glass) return row;
+    final n = labels.length;
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.14),
         borderRadius: BorderRadius.circular(40),
       ),
-      child: row,
+      child: Stack(
+        children: [
+          // Sliding white thumb behind the labels.
+          Positioned.fill(
+            child: AnimatedAlign(
+              duration: const Duration(milliseconds: 380),
+              curve: const Cubic(0.2, 1.25, 0.4, 1),
+              alignment: Alignment(n == 1 ? 0 : -1 + 2 * index / (n - 1), 0),
+              child: FractionallySizedBox(
+                widthFactor: 1 / n,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(40),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: .15),
+                        blurRadius: 10,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+          row,
+        ],
+      ),
     );
   }
 }

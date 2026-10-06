@@ -49,6 +49,7 @@ class CalendarRepository extends ChangeNotifier {
   String secondZone = 'America/New_York';
   String localZoneId = 'UTC';
   bool weekStartsMonday = true;
+  bool onboarded = false;
   String? defaultCalendarId;
 
   bool get hasDeviceAccess => permission == CalendarPermissionStatus.granted;
@@ -77,6 +78,7 @@ class CalendarRepository extends ChangeNotifier {
         .toSet();
     secondZone = _prefs!.getString('second_zone') ?? secondZone;
     weekStartsMonday = _prefs!.getBool('week_monday') ?? true;
+    onboarded = _prefs!.getBool('onboarded') ?? false;
     defaultCalendarId = _prefs!.getString('default_calendar');
     try {
       localZoneId = (await FlutterTimezone.getLocalTimezone()).identifier;
@@ -351,6 +353,12 @@ class CalendarRepository extends ChangeNotifier {
   }
 
   // ------------------------------------------------------------ settings
+  Future<void> completeOnboarding() async {
+    onboarded = true;
+    await _prefs?.setBool('onboarded', true);
+    notifyListeners();
+  }
+
   Future<void> setCalendarVisible(String id, bool visible) async {
     visible ? hiddenCalendarIds.remove(id) : hiddenCalendarIds.add(id);
     await _prefs?.setStringList('hidden_calendars', hiddenCalendarIds.toList());

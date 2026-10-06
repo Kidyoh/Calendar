@@ -5,6 +5,7 @@ import '../services/widget_sync.dart';
 import '../widgets/common.dart';
 import '../widgets/glass_widget.dart';
 import '../widgets/islands.dart';
+import '../widgets/motion.dart';
 import 'event_editor.dart';
 import 'settings_sheet.dart';
 
@@ -16,7 +17,7 @@ class WidgetsView extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListView(
       padding: const EdgeInsets.fromLTRB(14, 0, 14, 40),
-      children: [
+      children: _stagger([
         _title('Glass'),
         ClipRRect(
           borderRadius: BorderRadius.circular(40),
@@ -25,10 +26,15 @@ class WidgetsView extends StatelessWidget {
               const Positioned.fill(child: LandscapeBackdrop()),
               Padding(
                 padding: const EdgeInsets.fromLTRB(18, 70, 18, 60),
-                child: GlassWeekWidget(
-                  onSettings: () => showSettingsSheet(context),
-                  onAddReminder: () => showEventEditor(context, reminder: true),
-                  onNewEvent: () => showEventEditor(context),
+                child: Floating(
+                  amplitude: 4,
+                  period: 4200,
+                  child: GlassWeekWidget(
+                    onSettings: () => showSettingsSheet(context),
+                    onAddReminder: () =>
+                        showEventEditor(context, reminder: true),
+                    onNewEvent: () => showEventEditor(context),
+                  ),
                 ),
               ),
             ],
@@ -49,9 +55,14 @@ class WidgetsView extends StatelessWidget {
           'Add island widget to home screen',
           islandWidgetName,
         ),
-      ],
+      ]),
     );
   }
+
+  List<Widget> _stagger(List<Widget> items) => [
+    for (var i = 0; i < items.length; i++)
+      FadeSlideIn.stagger(i, stepMs: 55, child: items[i]),
+  ];
 
   Widget _title(String t) => Padding(
     padding: const EdgeInsets.fromLTRB(8, 4, 0, 10),

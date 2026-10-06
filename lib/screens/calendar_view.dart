@@ -5,6 +5,7 @@ import '../core/dates.dart';
 import '../core/theme.dart';
 import '../models/event_item.dart';
 import '../services/calendar_repository.dart';
+import '../widgets/motion.dart';
 import 'event_editor.dart';
 
 class CalendarView extends StatelessWidget {
@@ -49,12 +50,18 @@ class CalendarView extends StatelessWidget {
                 ),
                 children: [
                   for (var i = 0; i < days.length; i++)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
-                      child: DayCard(
-                        day: days[i],
-                        palette: paletteAt(days[i].day),
-                        onOpenDay: onOpenDay,
+                    FadeSlideIn.stagger(
+                      i,
+                      child: Padding(
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: Pressable(
+                          scale: .98,
+                          child: DayCard(
+                            day: days[i],
+                            palette: paletteAt(days[i].day),
+                            onOpenDay: onOpenDay,
+                          ),
+                        ),
                       ),
                     ),
                 ],

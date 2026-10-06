@@ -10,7 +10,7 @@ void main() {
   testWidgets('renders every tab and the editor without layout errors', (
     tester,
   ) async {
-    SharedPreferences.setMockInitialValues({});
+    SharedPreferences.setMockInitialValues({'onboarded': true});
     tzdata.initializeTimeZones();
     tester.view.physicalSize = const Size(1170, 2532);
     tester.view.devicePixelRatio = 3;

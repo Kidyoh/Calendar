@@ -1,0 +1,89 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<style>
+  html,body{margin:0;padding:0;background:transparent}
+  #c{position:relative;width:1024px;height:1024px;overflow:hidden}
+  .bg{position:absolute;inset:0}
+  /* glass tile */
+  .tile{position:absolute;border-radius:22%;overflow:hidden;
+        box-shadow:0 40px 80px rgba(10,30,10,.35), 0 8px 18px rgba(10,30,10,.18)}
+  .tile .blur{position:absolute;filter:blur(28px) saturate(1.15)}
+  .tile .tint{position:absolute;inset:0;
+        background:linear-gradient(140deg,rgba(255,255,255,.62) 0%,rgba(255,255,255,.24) 45%,rgba(30,45,25,.26) 100%)}
+  .tile .edge{position:absolute;inset:0;border-radius:inherit;
+        box-shadow:inset 0 0 0 3px rgba(255,255,255,.55), inset 0 3px 0 rgba(255,255,255,.7)}
+  .chip{position:absolute;background:#fff;border-radius:22%;
+        box-shadow:0 10px 22px rgba(0,0,0,.18)}
+  .chip{overflow:hidden}
+  .chip i{position:absolute;left:0;right:0;top:0;height:34%;background:#141414}
+  .chip b{position:absolute;top:50%;width:46%;height:12%;left:27%;border-radius:999px;background:#E6BA6E}
+  .chip u{position:absolute;top:70%;width:30%;height:12%;left:27%;border-radius:999px;background:#BDB4D4}
+  .line{position:absolute;border-radius:999px;background:rgba(255,255,255,.75)}
+  .bar{position:absolute;border-radius:999px;box-shadow:0 6px 14px rgba(0,0,0,.12)}
+</style></head>
+<body><div id="c"></div>
+<script>
+const mode = location.hash.slice(1) || 'full';   // full | bg | fg
+const tileFrac = mode === 'full' ? 0.62 : 0.46;   // adaptive layers keep inside the safe zone
+const S = 1024;
+
+const landscape = `
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="none" width="100%" height="100%">
+ <defs>
+  <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+   <stop offset="0" stop-color="#AFC9D3"/><stop offset=".55" stop-color="#DCE8E3"/><stop offset="1" stop-color="#E9EFE6"/>
+  </linearGradient>
+  <linearGradient id="mid" x1="0" y1="0" x2="0" y2="1">
+   <stop offset="0" stop-color="#7DAE4A"/><stop offset="1" stop-color="#3F6A2C"/>
+  </linearGradient>
+  <linearGradient id="near" x1="0" y1="0" x2="0" y2="1">
+   <stop offset="0" stop-color="#A3D157"/><stop offset="1" stop-color="#4E7F2A"/>
+  </linearGradient>
+  <filter id="mist" x="-60%" y="-200%" width="220%" height="500%"><feGaussianBlur stdDeviation="3.5"/></filter>
+ </defs>
+ <rect width="100" height="100" fill="url(#sky)"/>
+ <path d="M0 42 Q18 14 34 30 Q52 4 70 22 Q86 10 100 26 L100 100 L0 100Z" fill="#557A55"/>
+ <ellipse cx="45" cy="34" rx="48" ry="9" fill="#fff" opacity=".8" filter="url(#mist)"/>
+ <ellipse cx="85" cy="20" rx="30" ry="7" fill="#fff" opacity=".7" filter="url(#mist)"/>
+ <path d="M0 58 Q26 40 52 56 Q76 44 100 54 L100 100 L0 100Z" fill="url(#mid)"/>
+ <path d="M0 76 Q34 62 62 74 Q84 66 100 72 L100 100 L0 100Z" fill="url(#near)"/>
+</svg>`;
+const bgUrl = 'data:image/svg+xml;utf8,' + encodeURIComponent(landscape);
+
+const c = document.getElementById('c');
+if (mode !== 'fg') {
+  const bg = document.createElement('div');
+  bg.className = 'bg';
+  bg.style.background = `url("${bgUrl}") center/cover`;
+  c.appendChild(bg);
+}
+if (mode !== 'bg') {
+  const t = Math.round(S * tileFrac), x = (S - t) / 2, y = (S - t) / 2 + S * 0.01;
+  const tile = document.createElement('div');
+  tile.className = 'tile';
+  Object.assign(tile.style, {left: x + 'px', top: y + 'px', width: t + 'px', height: t + 'px'});
+  // Blurred copy of the exact background behind the tile (baked "backdrop blur",
+  // so it also works when the foreground is exported as its own layer).
+  const b = document.createElement('div');
+  b.className = 'blur';
+  Object.assign(b.style, {left: -x + 'px', top: -y + 'px', width: S + 'px', height: S + 'px',
+    background: `url("${bgUrl}") center/cover`});
+  tile.appendChild(b);
+  tile.insertAdjacentHTML('beforeend', '<div class="tint"></div><div class="edge"></div>');
+  const u = t / 100; // tile units
+  const add = (cls, l, tp, w, h, color) => {
+    const e = document.createElement('div'); e.className = cls;
+    Object.assign(e.style, {left: l*u+'px', top: tp*u+'px', width: w*u+'px', height: h*u+'px'});
+    if (color) e.style.background = color;
+    if (cls === 'chip') e.innerHTML = '<i></i><b></b><u></u>';
+    tile.appendChild(e); return e;
+  };
+  add('chip', 14, 14, 26, 26);                 // "today" square (like the selected day)
+  add('line', 48, 18, 38, 7);                  // header text lines
+  add('line', 48, 30, 24, 7).style.background = 'rgba(255,255,255,.5)';
+  add('bar', 14, 52, 72, 11, '#E6BA6E');       // amber task
+  add('bar', 14, 67, 52, 11, '#BDB4D4');       // lavender task
+  add('bar', 14, 82, 34, 11, '#9ECBC7');       // teal task (fades off the edge)
+  c.appendChild(tile);
+}
+</script></body></html>

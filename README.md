@@ -5,8 +5,8 @@
 </p>
 
 <p align="center">
-  <a href="assets/video/glass-calendar-promo.mp4"><img src="assets/video/poster.jpg" alt="Watch the 45-second promo (with voiceover)" width="70%"></a><br>
-  <sub>▶ <a href="assets/video/glass-calendar-promo.mp4">Watch the 45-second promo</a> · voiceover by Kokoro (Apache-2.0), voice <code>af_heart</code></sub>
+  <a href="assets/video/glass-calendar-promo.mp4"><img src="assets/video/poster.jpg" alt="Watch the 53-second promo (with voiceover)" width="70%"></a><br>
+  <sub>▶ <a href="assets/video/glass-calendar-promo.mp4">Watch the 53-second promo</a> · voiceover by Kokoro (Apache-2.0), voice <code>af_heart</code></sub>
 </p>
 
 
@@ -72,7 +72,8 @@ is a translucent tinted gradient with a luminous edge. The in-app glass widget u
   feature graphic, icon, 7–8 phone screenshots, title and descriptions.
 - **Banners**, three art directions (glass · pastel · night) × five sizes: `assets/banners/`.
 - **GitHub social preview**: `.github/social-preview.png` (upload under Settings → Social preview).
-- **Promo video** 1920×1080, 45 s, with narration: `assets/video/glass-calendar-promo.mp4`.
+- **Posters**, a numbered series (01 Today · 02 Calendar · 03 Widgets · 04 Ethiopian time · 05 Feasts & fasts) in square, portrait and wide: `assets/posters/`.
+- **Promo video** 1920×1080, 53 s, real app interactions (taps, typing, live language switch) with narration: `assets/video/glass-calendar-promo.mp4`.
 - Sources to regenerate all of it: `promo/`.
 
 ## Run

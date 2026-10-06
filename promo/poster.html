@@ -1,0 +1,185 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700;800;900&family=Instrument+Serif:ital@0;1&family=Noto+Sans+Ethiopic:wght@600;700;800&family=Noto+Serif+Ethiopic:wght@500;700&display=block" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:transparent;font-family:'Inter Tight','Noto Sans Ethiopic',sans-serif;-webkit-font-smoothing:antialiased}
+#p{position:relative;overflow:hidden}
+.abs{position:absolute}
+.top{position:absolute;display:flex;align-items:center;justify-content:space-between;z-index:5}
+.brand{display:flex;align-items:center;gap:.6em;font-weight:700;letter-spacing:-.02em}
+.brand img{border-radius:24%;box-shadow:0 .4em 1em rgba(0,0,0,.25)}
+.kick{font-weight:700;letter-spacing:.32em;text-transform:uppercase}
+h1{position:absolute;z-index:4;font-weight:800;letter-spacing:-.055em;line-height:.92}
+h1 .it{font-family:'Instrument Serif','Noto Serif Ethiopic',serif;font-style:italic;font-weight:400;letter-spacing:-.02em;display:block;line-height:1}
+h1 .am{font-family:'Noto Sans Ethiopic';letter-spacing:-.01em}
+.sub{position:absolute;z-index:4;font-weight:500;line-height:1.38;letter-spacing:-.01em}
+.chip{position:absolute;z-index:6;display:flex;align-items:center;gap:.55em;padding:.62em 1.1em;border-radius:999px;font-weight:700;letter-spacing:-.01em;white-space:nowrap;
+  box-shadow:0 .9em 2em rgba(0,0,0,.22)}
+.phone{position:absolute;z-index:3;border-radius:14%/6.4%;padding:2.3%;background:#0c0c0c;
+  box-shadow:0 3em 6em rgba(0,0,0,.40),0 .8em 1.6em rgba(0,0,0,.25),inset 0 0 0 .2em #2a2a2a}
+.phone img{width:100%;height:100%;display:block;object-fit:cover;object-position:top;border-radius:11.5%/5.3%}
+.glass{backdrop-filter:blur(26px) saturate(1.2);-webkit-backdrop-filter:blur(26px) saturate(1.2);
+  background:linear-gradient(140deg,rgba(255,255,255,.5),rgba(255,255,255,.16) 50%,rgba(30,45,25,.22));
+  box-shadow:inset 0 0 0 2px rgba(255,255,255,.5),0 2em 4em rgba(10,30,10,.3)}
+</style></head>
+<body><div id="p"></div>
+<script>
+const q = new URLSearchParams(location.search);
+const W = +q.get('w'), H = +q.get('h'), id = q.get('id');
+const wide = W / H > 1.3, tall = H / W > 1.15;
+const p = document.getElementById('p'); p.style.width = W + 'px'; p.style.height = H + 'px';
+const em = (wide ? H : W) / 100;               // 1em ~ 1% of the short side
+p.style.fontSize = em * 2.2 + 'px';
+const add = h => { p.insertAdjacentHTML('beforeend', h); return p.lastElementChild; };
+const ICON = 'icon.png';
+
+const landscape = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" preserveAspectRatio="xMidYMid slice" width="100%" height="100%">
+ <defs><linearGradient id="s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9DBBC8"/><stop offset=".55" stop-color="#DCE8E3"/></linearGradient>
+ <linearGradient id="m" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7DAE4A"/><stop offset="1" stop-color="#3F6A2C"/></linearGradient>
+ <linearGradient id="n" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#A3D157"/><stop offset="1" stop-color="#4E7F2A"/></linearGradient>
+ <filter id="f" x="-60%" y="-200%" width="220%" height="500%"><feGaussianBlur stdDeviation="5"/></filter></defs>
+ <rect width="160" height="160" fill="url(#s)"/>
+ <path d="M0 70 Q22 30 46 52 Q70 18 96 44 Q122 22 160 40 L160 160 L0 160Z" fill="#557A55"/>
+ <ellipse cx="60" cy="58" rx="80" ry="12" fill="#fff" opacity=".8" filter="url(#f)"/>
+ <path d="M0 96 Q40 74 80 92 Q120 76 160 88 L160 160 L0 160Z" fill="url(#m)"/>
+ <path d="M0 122 Q50 104 96 118 Q130 108 160 116 L160 160 L0 160Z" fill="url(#n)"/>
+ <path d="M18 110 C12 128 80 124 62 140 C52 150 110 152 150 170" stroke="#5F686A" stroke-width="7" fill="none" stroke-linecap="round"/>
+</svg>`;
+const LAND = `url('data:image/svg+xml;utf8,${encodeURIComponent(landscape)}') center/cover`;
+
+// ---------- poster definitions
+const P = {
+  today: {
+    no: '01 · Today', bg: 'radial-gradient(90% 70% at 0% 0%,#F2DCE0 0%,transparent 60%),radial-gradient(80% 60% at 100% 100%,#F3D3A6 0%,transparent 60%),#F3F1EA',
+    fg: '#111', kick: '#C9612B', it: '#D9683A', sub: '#6b6a64',
+    head: 'Your whole day,', accent: 'at a glance.',
+    text: 'Big date, two world clocks and calm pastel task cards.',
+    chips: [['🕒', '3 tasks today', '#fff', '#111', -3], ['●', 'Next · Design review 10:00', '#111', '#fff', 2]],
+    phone: 'today_en.png', tilt: 7,
+  },
+  calendar: {
+    no: '02 · Calendar', bg: 'linear-gradient(160deg,#25606B 0%,#173F48 55%,#10272D 100%)',
+    fg: '#fff', kick: '#F5C98A', it: '#F5C98A', sub: '#B9CBCD',
+    head: 'Every day,', accent: 'by the hour.',
+    text: 'A month you can read in one look: colour-coded days, hours and quick “+” slots.',
+    tiles: true, phone: 'calendar_en.png', tilt: -8,
+  },
+  glass: {
+    no: '03 · Widgets', bg: LAND,
+    fg: '#111', kick: '#2F4D2B', it: '#fff', sub: '#2c3a2b',
+    head: 'Frosted glass.', accent: 'Home screen.',
+    text: 'Weekly, monthly and island widgets that float over your wallpaper.',
+    chips: [['▦', 'Weekly', '#fff', '#111', -4], ['▤', 'Monthly', 'rgba(255,255,255,.35)', '#111', 3], ['⬬', 'Island', '#111', '#fff', -2]],
+    widget: true, phone: 'widgets_en.png', tilt: 6,
+  },
+  ethiopia: {
+    no: '04 · ዓ.ም', bg: 'radial-gradient(80% 60% at 0% 0%,#4A2430 0%,transparent 60%),radial-gradient(70% 50% at 100% 0%,#1F3B3A 0%,transparent 55%),#090909',
+    fg: '#F4F1EA', kick: '#E6A84B', it: '#E6A84B', sub: '#A9A69E',
+    head: 'Ethiopian time.', accent: 'በአማርኛ።', accentAm: true,
+    text: 'Meskerem to Pagume, Gregorian or Ethiopian, English or Amharic. Switch any time.',
+    fan: [['መስከረም', '1', 'እንቁጣጣሽ'], ['መስከረም', '17', 'መስቀል'], ['ታኅሣሥ', '29', 'ገና'], ['ጥር', '11', 'ጥምቀት'], ['ጳጉሜ', '6', 'Pagume']],
+  },
+  holidays: {
+    no: '05 · Feasts & fasts', bg: 'linear-gradient(170deg,#F6C98A 0%,#EB8E5E 34%,#C94F6D 64%,#5A2350 100%)',
+    fg: '#0d0d0d', kick: '#3B1033', it: '#FFF3DC', sub: '#3a1630',
+    head: 'Every feast.|Every fast.', accent: 'Built in.',
+    text: '',
+    chips: [['⛪', 'Fasika · Easter', '#111', '#fff', -4], ['', 'ዐቢይ ጾም · Day 12 of 55', '#fff', '#111', 2], ['', 'Wednesday & Friday fasts', 'rgba(255,255,255,.28)', '#fff', -2]],
+    phone: 'today_am_meskel.png', tilt: 6,
+  },
+}[id];
+
+p.style.background = P.bg;
+
+// ---------- header row
+const pad = (wide ? H : W) * .06;
+add(`<div class="top" style="left:${pad}px;right:${pad}px;top:${pad * .9}px;color:${P.fg}">
+  <div class="brand" style="font-size:1.45em"><img src="${ICON}" style="width:2em;height:2em">Glass Calendar</div>
+  <div class="kick" style="color:${P.kick};font-size:.95em">${P.no}</div></div>`);
+
+// ---------- headline
+const hs = wide ? 7.2 : 6.9;     // em
+const headHtml = P.head.split('|').join('<br>');
+const h = add(`<h1 style="left:${pad}px;top:${(wide ? H * .21 : H * (tall ? .16 : .15))}px;color:${P.fg};font-size:${hs}em;max-width:${wide ? W * .55 : W - pad * 2}px">
+  ${headHtml}<span class="it" style="color:${P.it};font-size:1.04em;${P.accentAm ? "font-family:'Noto Serif Ethiopic';font-style:normal;font-weight:500" : ''}">${P.accent}</span></h1>`);
+const hb = h.getBoundingClientRect();
+let y = hb.bottom + em * 3.2;
+if (P.text) {
+  const s = add(`<div class="sub" style="left:${pad}px;top:${y}px;color:${P.sub};font-size:1.38em;max-width:${wide ? W * .42 : W * .62}px">${P.text}</div>`);
+  y = s.getBoundingClientRect().bottom + em * 3;
+}
+
+// ---------- phone
+const phone = (src, x, yy, w, r, z = 3) => add(`<div class="phone" style="left:${x}px;top:${yy}px;width:${w}px;height:${w * 2.164}px;transform:rotate(${r}deg);z-index:${z}"><img src="${src}"></div>`);
+
+// ---------- per-poster visuals
+if (id === 'today' || id === 'holidays') {
+  const pw = wide ? H * .58 : W * (tall ? .46 : .42);
+  phone(P.phone, wide ? W * .63 : W * .53, wide ? H * .2 : Math.max(y - em * 6, H * (tall ? .48 : .5)), pw, P.tilt);
+}
+if (id === 'calendar') {
+  // floating day tiles, like days filling up a month
+  const cols = wide ? 6 : 5, size = (wide ? W * .5 : W * .82) / cols, gap = size * .14;
+  const x0 = wide ? pad : pad * .6, y0 = wide ? y + em * 1 : y;
+  const pal = ['#BDB4D4', '#E6BA6E', '#9ECBC7', '#C5CE9B', '#D09BA6', '#B1BDBB'];
+  let n = 0;
+  for (let r = 0; r < (wide ? 2 : tall ? 4 : 3); r++) for (let c = 0; c < cols; c++) {
+    n++;
+    const filled = (n * 7) % 5 !== 0, today = n === (wide ? 9 : 12);
+    const x = x0 + c * (size + gap) + (r % 2) * size * .1, yy = y0 + r * (size + gap);
+    const bg = filled ? pal[(n * 5) % pal.length] : 'rgba(255,255,255,.06)';
+    add(`<div class="abs" style="left:${x}px;top:${yy}px;width:${size}px;height:${size}px;border-radius:26%;background:${bg};transform:rotate(${(c - 2) * 1.6}deg);
+      ${today ? `box-shadow:0 0 0 ${size * .05}px #F5C98A,0 0 ${size * .4}px rgba(245,201,138,.45)` : filled ? 'box-shadow:0 1em 2em rgba(0,0,0,.25)' : 'box-shadow:inset 0 0 0 2px rgba(255,255,255,.08)'};
+      display:flex;flex-direction:column;justify-content:space-between;padding:${size * .12}px;color:#1b1b1b">
+      ${filled ? `<b style="font-size:${size * .3}px;letter-spacing:-.04em;line-height:1">${n}</b><span style="height:${size * .09}px;width:${size * (.3 + (n % 3) * .15)}px;border-radius:9px;background:rgba(0,0,0,.55)"></span>` : ''}</div>`);
+  }
+  const pw = wide ? H * .56 : W * .42;
+  phone(P.phone, wide ? W * .66 : W * .58, wide ? H * .22 : H * (tall ? .62 : .58), pw, P.tilt, 7);
+}
+if (id === 'glass') {
+  const gw = wide ? W * .34 : W * .5, gx = wide ? W * .58 : W * .44, gy = wide ? H * .2 : y + em * 1;
+  const days = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+  add(`<div class="abs glass" style="left:${gx}px;top:${gy}px;width:${gw}px;border-radius:${gw * .1}px;padding:${gw * .055}px;z-index:4;transform:rotate(-4deg);color:#fff">
+    <div style="display:flex;gap:${gw * .02}px;padding:${gw * .012}px;border-radius:99px;background:rgba(255,255,255,.18);font-size:${gw * .045}px;font-weight:700">
+      <div style="flex:1;text-align:center;padding:${gw * .03}px;border-radius:99px;background:#fff;color:#111">Weekly</div>
+      <div style="flex:1;text-align:center;padding:${gw * .03}px;opacity:.8">Monthly</div></div>
+    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:${gw * .06}px;font-size:${gw * .15}px;font-weight:300;letter-spacing:-.03em;line-height:1"><span>October</span><span>6</span></div>
+    <div style="display:flex;justify-content:space-between;margin-top:${gw * .06}px;font-size:${gw * .045}px;font-weight:700">
+      ${days.map((d, i) => `<div style="text-align:center;width:${gw * .11}px"><div style="opacity:.7">${d}</div>
+        <div style="margin-top:${gw * .03}px;height:${gw * .11}px;line-height:${gw * .11}px;border-radius:${gw * .035}px;font-size:${gw * .05}px;${i === 1 ? 'background:#fff;color:#111' : ''}">${5 + i}</div></div>`).join('')}</div></div>`);
+  // island pill
+  const iw = gw * .9;
+  add(`<div class="abs" style="left:${gx + gw * .18}px;top:${gy + gw * .78}px;width:${iw}px;padding:${iw * .05}px ${iw * .07}px;border-radius:${iw * .1}px;background:#000;color:#fff;z-index:5;transform:rotate(3deg);box-shadow:0 2em 3em rgba(0,0,0,.35)">
+    <div style="display:flex;justify-content:space-between;font-weight:700;font-size:${iw * .055}px"><span>Day</span><span>42%</span></div>
+    <div style="display:flex;justify-content:space-between;margin-top:${iw * .04}px">${Array.from({ length: 12 }, (_, i) => `<i style="width:${iw * .05}px;height:${iw * .05}px;border-radius:50%;background:${i < 10 ? '#fff' : '#333'}"></i>`).join('')}</div></div>`);
+}
+if (id === 'ethiopia') {
+  // fanned month cards
+  const n = P.fan.length, cw = wide ? H * .32 : W * .26, ch = cw * 1.28;
+  const cx = wide ? W * .74 : W * .5, cy = wide ? H * .56 : H * (tall ? .8 : .87);
+  P.fan.forEach(([m, d, f], i) => {
+    const k = i - (n - 1) / 2, rot = k * 10, dx = k * cw * (wide ? .52 : .66), dy = Math.abs(k) * cw * .12;
+    const center = k === 0;
+    add(`<div class="abs" style="left:${cx - cw / 2 + dx}px;top:${cy - ch / 2 + dy}px;width:${cw}px;height:${ch}px;border-radius:${cw * .1}px;background:#F4F1EA;transform:rotate(${rot}deg);z-index:${10 - Math.abs(k)};
+      box-shadow:0 2em 3em rgba(0,0,0,.45);padding:${cw * .07}px;display:flex;flex-direction:column">
+      <div style="flex:1;border-radius:${cw * .07}px;background:${['#E6BA6E', '#D09BA6', '#9ECBC7', '#BDB4D4', '#C5CE9B'][i]};display:flex;flex-direction:column;justify-content:space-between;padding:${cw * .08}px;color:#1a1a1a">
+        <div style="font-family:'Noto Sans Ethiopic';font-weight:800;font-size:${cw * .1}px">${m}</div>
+        <div style="font-weight:800;font-size:${cw * .42}px;letter-spacing:-.05em;line-height:.9">${d}</div>
+        <div style="font-family:'Noto Sans Ethiopic';font-weight:700;font-size:${cw * .085}px;opacity:.85">${f}</div></div>
+      <div style="height:${cw * .13}px;display:flex;align-items:center;justify-content:center"><i style="width:${cw * .06}px;height:${cw * .06}px;border-radius:50%;background:#E6A84B"></i></div></div>`);
+  });
+}
+
+// ---------- chips
+if (P.chips) {
+  const cx = pad, cy0 = wide ? (id === 'glass' ? y : y) : y;
+  P.chips.forEach(([ic, t, bg, fg, r], i) => {
+    const left = cx + (i % 2) * em * 3;
+    add(`<div class="chip" style="left:${left}px;top:${cy0 + i * em * 8.8}px;background:${bg};color:${fg};font-size:1.45em;transform:rotate(${r}deg);
+      ${bg.startsWith('rgba') ? 'backdrop-filter:blur(14px);box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.45),0 .9em 2em rgba(0,0,0,.18)' : ''}">
+      ${ic ? `<span style="color:${bg === '#fff' ? '#C9612B' : '#E6A84B'}">${ic}</span>` : ''}<span class="${/[ሀ-፿]/.test(t) ? 'am' : ''}" style="${/[ሀ-፿]/.test(t) ? "font-family:'Noto Sans Ethiopic'" : ''}">${t}</span></div>`);
+  });
+}
+document.fonts.ready.then(() => setTimeout(() => document.body.setAttribute('data-ready', '1'), 300));
+</script></body></html>

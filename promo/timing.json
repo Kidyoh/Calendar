@@ -1,69 +1,94 @@
 {
- "total": 45.536,
+ "total": 53.036,
  "scenes": [
   {
    "key": "intro",
+   "text": "Meet Glass Calendar.",
    "start": 0.0,
    "end": 3.764,
    "vo": 1.2,
-   "voEnd": 2.464,
-   "text": "Meet Glass Calendar."
+   "voEnd": 2.464
   },
   {
    "key": "today",
+   "text": "Your days, beautifully. Tasks and meetings live on calm pastel cards, with two world clocks always at a glance.",
+   "clip": {
+    "at": 0.55,
+    "frames": 272,
+    "rate": 1.019
+   },
    "start": 3.764,
-   "end": 12.232,
+   "end": 13.732,
    "vo": 4.214,
-   "voEnd": 11.382,
-   "text": "Your days, beautifully. Tasks and meetings live on calm pastel cards, with two world clocks always at a glance."
+   "voEnd": 11.382
   },
   {
    "key": "calendar",
-   "start": 12.232,
-   "end": 16.943,
-   "vo": 12.682,
-   "voEnd": 16.093,
-   "text": "Flip through your months, and see every day laid out by the hour."
+   "text": "Flip through your months, and see every day laid out by the hour.",
+   "clip": {
+    "at": 0.55,
+    "frames": 187,
+    "rate": 1.211
+   },
+   "start": 13.732,
+   "end": 19.943,
+   "vo": 14.182,
+   "voEnd": 17.593
   },
   {
    "key": "widgets",
-   "start": 16.943,
-   "end": 21.028,
-   "vo": 17.393,
-   "voEnd": 20.178,
-   "text": "Frosted glass widgets float right on your home screen."
+   "text": "Frosted glass widgets float right on your home screen.",
+   "clip": {
+    "at": 0.55,
+    "frames": 171,
+    "rate": 1.259
+   },
+   "start": 19.943,
+   "end": 25.528,
+   "vo": 20.393,
+   "voEnd": 23.178
   },
   {
    "key": "ethiopia",
-   "start": 21.028,
-   "end": 27.033,
-   "vo": 21.478,
-   "voEnd": 26.183,
-   "text": "It speaks Amharic, and follows the Ethiopian calendar, Pagume included."
+   "text": "It speaks Amharic, and follows the Ethiopian calendar, Pagume included.",
+   "clip": {
+    "at": 0.55,
+    "frames": 212,
+    "rate": 1.095
+   },
+   "start": 25.528,
+   "end": 33.033,
+   "vo": 25.978,
+   "voEnd": 30.683
   },
   {
    "key": "holidays",
-   "start": 27.033,
-   "end": 34.945,
-   "vo": 27.483,
-   "voEnd": 34.095,
-   "text": "Fasika, Meskel, Timket, and every fast, from Abiy Tsom to the Wednesday and Friday fasts, are built in."
+   "text": "Fasika, Meskel, Timket, and every fast, from Abiy Tsom to the Wednesday and Friday fasts, are built in.",
+   "clip": {
+    "at": 0.55,
+    "frames": 260,
+    "rate": 1.039
+   },
+   "start": 33.033,
+   "end": 42.445,
+   "vo": 33.483,
+   "voEnd": 40.095
   },
   {
    "key": "sync",
-   "start": 34.945,
-   "end": 39.341,
-   "vo": 35.395,
-   "voEnd": 38.491,
-   "text": "And it stays in sync with Google, iCloud, and Outlook."
+   "text": "And it stays in sync with Google, iCloud, and Outlook.",
+   "start": 42.445,
+   "end": 46.841,
+   "vo": 42.895,
+   "voEnd": 45.991
   },
   {
    "key": "outro",
-   "start": 39.341,
-   "end": 45.536,
-   "vo": 39.791,
-   "voEnd": 42.336,
-   "text": "Glass Calendar. Your time, beautifully kept."
+   "text": "Glass Calendar. Your time, beautifully kept.",
+   "start": 46.841,
+   "end": 53.036,
+   "vo": 47.291,
+   "voEnd": 49.836
   }
  ]
 }

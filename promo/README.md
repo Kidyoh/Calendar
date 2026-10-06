@@ -6,6 +6,9 @@ Everything here regenerates the banners in `assets/banners/` and the video in `a
 | --- | --- |
 | `banner.html` | Banner template: `?style=glass|pastel|night&w=…&h=…`. Uses the app screenshots + `icon.png` next to it. |
 | `render_banners.js` | Exports all 3 styles × 5 sizes with Playwright/Chromium. |
+| `poster.html` / `render_posters.js` | Poster series `?id=today|calendar|glass|ethiopia|holidays&w=…&h=…`. |
+| `finger.js` | Drives the live web build like a finger (glide, press, ripple, type, swipe) and records it via the Chrome screencast. |
+| `record_interactions.js` | The five interaction clips. Run against a web build with `?slow=3` (Flutter `timeDilation`), footage is sped back up 3×. |
 | `narration.py` | Voiceover with Kokoro (Apache-2.0), female voice `af_heart`. |
 | `timing.json` | Scene timings derived from the narration lengths. |
 | `motion.html` | 1920×1080 motion scenes, driven frame-by-frame via `setTime(t)`. |

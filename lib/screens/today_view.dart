@@ -682,13 +682,14 @@ class _RemindersPill extends StatelessWidget {
   }
 
   void _showReminders(BuildContext context) {
+    final repo = context.read<CalendarRepository>();
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       useSafeArea: true,
       builder: (_) => ChangeNotifierProvider.value(
-        value: context.read<CalendarRepository>(),
+        value: repo,
         child: Consumer<CalendarRepository>(
           builder: (ctx, repo, _) {
             final list = repo.reminders;
@@ -808,7 +809,7 @@ class _ConnectBanner extends StatelessWidget {
               foregroundColor: Colors.black,
             ),
             onPressed: repo.connectDeviceCalendars,
-            child: const Text('Connect'),
+            child: Text(t('Connect')),
           ),
         ],
       ),

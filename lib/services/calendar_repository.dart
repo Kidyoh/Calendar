@@ -56,8 +56,9 @@ class CalendarRepository extends ChangeNotifier {
   String? defaultCalendarId;
 
   bool get hasDeviceAccess => permission == CalendarPermissionStatus.granted;
-  String get secondZoneLabel => zoneChoices[secondZone] ?? secondZone;
-  String get localZoneLabel => localZoneId.split('/').last.replaceAll('_', ' ');
+  String get secondZoneLabel => t(zoneChoices[secondZone] ?? secondZone);
+  String get localZoneLabel =>
+      t(localZoneId.split('/').last.replaceAll('_', ' '));
 
   List<Calendar> get writableCalendars =>
       calendars.where((c) => !c.readOnly).toList();

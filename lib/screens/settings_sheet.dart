@@ -11,13 +11,14 @@ import '../services/widget_sync.dart';
 import '../widgets/common.dart';
 
 Future<void> showSettingsSheet(BuildContext context) {
+  final repo = context.read<CalendarRepository>();
   return showModalBottomSheet(
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
     backgroundColor: Colors.transparent,
     builder: (_) => ChangeNotifierProvider.value(
-      value: context.read<CalendarRepository>(),
+      value: repo,
       child: const _SettingsSheet(),
     ),
   );
@@ -155,7 +156,7 @@ class _SettingsSheet extends StatelessWidget {
                             backgroundColor: AppColors.ink,
                           ),
                           onPressed: repo.connectDeviceCalendars,
-                          child: const Text('Connect calendars'),
+                          child: Text(t('Connect calendars')),
                         ),
                         if (repo.permission ==
                                 CalendarPermissionStatus.denied ||
@@ -163,7 +164,7 @@ class _SettingsSheet extends StatelessWidget {
                                 CalendarPermissionStatus.restricted)
                           OutlinedButton(
                             onPressed: repo.openSystemSettings,
-                            child: const Text('Open system settings'),
+                            child: Text(t('Open system settings')),
                           ),
                       ],
                     ),
@@ -194,7 +195,7 @@ class _SettingsSheet extends StatelessWidget {
                 child: TextButton.icon(
                   onPressed: repo.reload,
                   icon: const Icon(Icons.refresh),
-                  label: const Text('Sync now'),
+                  label: Text(t('Sync now')),
                 ),
               ),
             ],
@@ -213,7 +214,7 @@ class _SettingsSheet extends StatelessWidget {
                   underline: const SizedBox.shrink(),
                   items: [
                     for (final e in zoneChoices.entries)
-                      DropdownMenuItem(value: e.key, child: Text(e.value)),
+                      DropdownMenuItem(value: e.key, child: Text(t(e.value))),
                   ],
                   onChanged: (v) => v == null ? null : repo.setSecondZone(v),
                 ),
@@ -246,7 +247,7 @@ class _SettingsSheet extends StatelessWidget {
                       }
                     },
                     icon: const Icon(Icons.blur_on),
-                    label: const Text('Glass'),
+                    label: Text(t('Glass')),
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -264,7 +265,7 @@ class _SettingsSheet extends StatelessWidget {
                       }
                     },
                     icon: const Icon(Icons.view_week_outlined),
-                    label: const Text('Island'),
+                    label: Text(t('Island')),
                   ),
                 ),
               ],

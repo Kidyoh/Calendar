@@ -91,6 +91,19 @@ const _am = <String, String>{
   'Language': 'ቋንቋ',
   'Could not save to that calendar. Saved on this phone only.':
       'ወደዚያ ቀን መቁጠሪያ ማስቀመጥ አልተቻለም። በዚህ ስልክ ብቻ ተቀምጧል።',
+  // world clock cities
+  'New York': 'ኒው ዮርክ',
+  'Los Angeles': 'ሎስ አንጀለስ',
+  'United Kingdom': 'እንግሊዝ',
+  'Paris': 'ፓሪስ',
+  'Lagos': 'ሌጎስ',
+  'Nairobi': 'ናይሮቢ',
+  'Dubai': 'ዱባይ',
+  'India': 'ሕንድ',
+  'Singapore': 'ሲንጋፖር',
+  'Tokyo': 'ቶኪዮ',
+  'Sydney': 'ሲድኒ',
+  'Addis Ababa': 'አዲስ አበባ',
   // onboarding
   'Skip': 'ዝለል',
   'Maybe later': 'በኋላ',

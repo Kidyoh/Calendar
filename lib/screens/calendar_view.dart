@@ -38,9 +38,9 @@ class CalendarView extends StatelessWidget {
           _MonthGrid(repo: repo),
           const SizedBox(height: 14),
           if (days.isEmpty)
-            const Padding(
+            Padding(
               padding: EdgeInsets.all(32),
-              child: Center(child: Text('No events this month')),
+              child: Center(child: Text(t('No events this month'))),
             )
           else
             AnimatedSwitcher(

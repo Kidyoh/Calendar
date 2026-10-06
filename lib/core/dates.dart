@@ -119,6 +119,22 @@ String weekdayShort(DateTime d, {int len = 2}) {
   return weekdayNames[d.weekday - 1].substring(0, len);
 }
 
+/// Gregorian month name in the UI language, regardless of the calendar system.
+String gregMonthName(DateTime d) =>
+    AppLocale.am ? _monthNamesAm[d.month - 1] : monthNames[d.month - 1];
+
+/// ISO-8601 week number.
+int isoWeek(DateTime d) {
+  final day = dateOnly(d);
+  final thursday = addDays(day, 4 - day.weekday);
+  final firstThursday = DateTime(thursday.year, 1, 4);
+  return 1 +
+      thursday
+              .difference(addDays(firstThursday, 1 - firstThursday.weekday))
+              .inDays ~/
+          7;
+}
+
 /// "Oct 6, 2026" / "መስከረም 26, 2019" in the active calendar.
 String fmtDate(DateTime d) => '${monthShort(d)} ${dayNum(d)}, ${yearNum(d)}';
 

@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../core/calendar_faces.dart';
 import '../core/dates.dart';
 import '../core/holidays.dart';
 import '../core/locale.dart';
@@ -56,6 +57,9 @@ class CalendarRepository extends ChangeNotifier {
   bool showOrthodox = true;
   bool showIslamic = true;
   bool showSaints = false;
+
+  /// Which calendar the widgets show (swiped in-app, ⇄ on the home screen).
+  CalFace widgetFace = CalFace.gregorian;
   String get language => AppLocale.lang;
   bool get ethiopian => AppLocale.ethiopian;
   String? defaultCalendarId;
@@ -92,6 +96,10 @@ class CalendarRepository extends ChangeNotifier {
     showOrthodox = _prefs!.getBool('hol_orthodox') ?? true;
     showIslamic = _prefs!.getBool('hol_islamic') ?? true;
     showSaints = _prefs!.getBool('hol_saints') ?? false;
+    final savedFace = _prefs!.getInt('widget_face');
+    widgetFace = savedFace != null && savedFace < CalFace.values.length
+        ? CalFace.values[savedFace]
+        : (AppLocale.ethiopian ? CalFace.ethiopian : CalFace.gregorian);
     // First run on an Amharic phone defaults to Amharic + Ethiopian calendar.
     final amPhone = PlatformDispatcher.instance.locale.languageCode == 'am';
     AppLocale.lang = _prefs!.getString('language') ?? (amPhone ? 'am' : 'en');
@@ -101,8 +109,23 @@ class CalendarRepository extends ChangeNotifier {
     try {
       localZoneId = (await FlutterTimezone.getLocalTimezone()).identifier;
     } catch (_) {}
+    await syncFaceFromHomeWidget(notify: false);
     await refreshPermission();
     await reload();
+  }
+
+  /// Adopt the face picked with ⇄ on a home-screen widget.
+  Future<void> syncFaceFromHomeWidget({bool notify = true}) async {
+    final f = await WidgetSync.readFace();
+    if (f == null ||
+        f < 0 ||
+        f >= CalFace.values.length ||
+        f == widgetFace.index) {
+      return;
+    }
+    widgetFace = CalFace.values[f];
+    await _prefs?.setInt('widget_face', f);
+    if (notify) notifyListeners();
   }
 
   Future<void> refreshPermission() async {
@@ -427,7 +450,21 @@ class CalendarRepository extends ChangeNotifier {
   void _pushWidgets() => WidgetSync.push(
     allEvents,
     weekStartsMonday: weekStartsMonday,
+    face: widgetFace,
     holidayToday: holidaysFor(DateTime.now()).map((h) => h.name).join(' · '),
+  );
+
+  Future<void> setWidgetFace(CalFace f) async {
+    if (f == widgetFace) return;
+    widgetFace = f;
+    await _prefs?.setInt('widget_face', f.index);
+    notifyListeners();
+    _pushWidgets();
+  }
+
+  /// Swipe helper: next (+1) or previous (-1) face, wrapping around.
+  void cycleWidgetFace(int dir) => setWidgetFace(
+    CalFace.values[(widgetFace.index + dir) % CalFace.values.length],
   );
 
   Future<void> completeOnboarding() async {

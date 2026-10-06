@@ -3,11 +3,13 @@ package com.kidyoh.glass_calendar
 import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
 import android.widget.RemoteViews
 import java.util.Calendar
+import org.json.JSONObject
 import java.util.Locale
 
 /**
@@ -47,7 +49,7 @@ private object Ethiopian {
     )
 }
 
-private object WidgetRenderer {
+object WidgetRenderer {
     private val ids = listOf(0, 1, 2, 3, 4, 5, 6)
     private val wdIds = intArrayOf(R.id.wd0, R.id.wd1, R.id.wd2, R.id.wd3, R.id.wd4, R.id.wd5, R.id.wd6)
     private val numIds = intArrayOf(R.id.num0, R.id.num1, R.id.num2, R.id.num3, R.id.num4, R.id.num5, R.id.num6)
@@ -90,36 +92,50 @@ private object WidgetRenderer {
 
         val eth = prefs.getString("eth", "0") == "1"
         val am = prefs.getString("lang", "en") == "am"
+        // Calendar face: 0 Gregorian · 1 Ethiopian · 2 Islamic · 3 Orthodox.
+        val face = (prefs.getString("face", if (eth) "1" else "0") ?: "0").toIntOrNull()?.coerceIn(0, 3) ?: 0
+        val faceDays = parseFaceDays(prefs.getString("face_days", ""))
+        val faceToday = faceFor(prefs.getString("faces", ""), key(today), face)
         val todayEth = Ethiopian.fromCalendar(today)
-        val monthName = when {
-            eth && am -> Ethiopian.monthsAm[todayEth.second - 1]
-            eth -> Ethiopian.monthsEn[todayEth.second - 1]
+        val fallbackMonth = when {
+            (face == 1 || face == 3) && am -> Ethiopian.monthsAm[todayEth.second - 1]
+            face == 1 || face == 3 -> Ethiopian.monthsEn[todayEth.second - 1]
             am -> gregAm[today.get(Calendar.MONTH)]
             else -> today.getDisplayName(Calendar.MONTH, Calendar.LONG, Locale.ENGLISH) ?: ""
         }
-        fun dayOf(c: Calendar) = if (eth) Ethiopian.fromCalendar(c).third else c.get(Calendar.DAY_OF_MONTH)
+        fun dayOf(c: Calendar): Int {
+            faceDays[key(c)]?.getOrNull(face)?.let { return it }
+            return if (face == 1 || face == 3) Ethiopian.fromCalendar(c).third else c.get(Calendar.DAY_OF_MONTH)
+        }
+        val faceLabel = faceToday?.getOrNull(0) ?: arrayOf("Gregorian", "Ethiopian", "Islamic", "Orthodox")[face]
+        val title = faceToday?.getOrNull(1) ?: fallbackMonth
+        val dayText = faceToday?.getOrNull(2) ?: dayOf(today).toString()
+        val faceLine = listOfNotNull(faceToday?.getOrNull(3), faceToday?.getOrNull(4))
+            .filter { it.isNotEmpty() }.joinToString("  ·  ")
         val todayCount = byDay[key(today)] ?: 0
         val labelEvent = prefs.getString("label_event", "event") ?: "event"
         val labelEvents = prefs.getString("label_events", "events") ?: "events"
 
         if (glass) {
-            views.setTextViewText(R.id.month, monthName)
-            views.setTextViewText(R.id.day, dayOf(today).toString())
+            views.setTextViewText(R.id.face_label, "⇄  $faceLabel")
+            views.setTextViewText(R.id.month, title)
+            views.setTextViewText(R.id.day, dayText)
+            views.setTextViewText(R.id.face_line, faceLine)
             views.setTextViewText(R.id.add, prefs.getString("label_new", "＋ New Event"))
-            val title = prefs.getString("next_title", "") ?: ""
+            val next = prefs.getString("next_title", "") ?: ""
             val whenText = prefs.getString("next_when", "") ?: ""
             val holiday = prefs.getString("holiday", "") ?: ""
             views.setTextViewText(
                 R.id.next,
                 when {
-                    holiday.isNotEmpty() && title.isNotEmpty() -> "$holiday · $whenText $title"
+                    holiday.isNotEmpty() && next.isNotEmpty() -> "$holiday · $whenText $next"
                     holiday.isNotEmpty() -> holiday
-                    title.isEmpty() -> prefs.getString("label_none", "No upcoming events") ?: ""
-                    else -> "$whenText · $title"
+                    next.isEmpty() -> prefs.getString("label_none", "No upcoming events") ?: ""
+                    else -> "$whenText · $next"
                 }
             )
         } else {
-            views.setTextViewText(R.id.month, monthName)
+            views.setTextViewText(R.id.month, "⇄  $title")
             views.setTextViewText(
                 R.id.day,
                 "$todayCount ${if (todayCount == 1) labelEvent else labelEvents}"
@@ -159,18 +175,71 @@ private object WidgetRenderer {
             )
             views.setOnClickPendingIntent(R.id.root, pi)
         }
+        val cycle = Intent(
+            context,
+            if (glass) GlassWidgetProvider::class.java else IslandWidgetProvider::class.java
+        ).setAction(ACTION_CYCLE_FACE)
+        views.setOnClickPendingIntent(
+            if (glass) R.id.face_label else R.id.month,
+            PendingIntent.getBroadcast(
+                context, if (glass) 11 else 12, cycle,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+        )
         return views
     }
+
+    /** "yyyymmdd:g,e,h,o;…" → day numbers per face. */
+    private fun parseFaceDays(raw: String?): Map<String, List<Int>> =
+        raw.orEmpty().split(";").mapNotNull {
+            val p = it.split(":")
+            if (p.size == 2) p[0] to p[1].split(",").map { n -> n.toIntOrNull() ?: 0 } else null
+        }.toMap()
+
+    /** Today's [label, title, day, line, line2] for [face] from the app's JSON. */
+    private fun faceFor(raw: String?, day: String, face: Int): List<String>? = try {
+        val arr = JSONObject(raw ?: "{}").optJSONArray(day)?.optJSONArray(face)
+        arr?.let { a -> (0 until a.length()).map { a.optString(it) } }
+    } catch (e: Exception) {
+        null
+    }
+
+    /** ⇄ tapped: next calendar face, then redraw every widget. */
+    fun cycleFace(context: Context) {
+        val prefs = context.getSharedPreferences("HomeWidgetPreferences", Context.MODE_PRIVATE)
+        val cur = (prefs.getString("face", "0") ?: "0").toIntOrNull() ?: 0
+        prefs.edit().putString("face", ((cur + 1) % 4).toString()).apply()
+        refreshAll(context)
+    }
+
+    fun refreshAll(context: Context) {
+        val manager = AppWidgetManager.getInstance(context)
+        for ((cls, glass) in listOf(GlassWidgetProvider::class.java to true, IslandWidgetProvider::class.java to false)) {
+            for (id in manager.getAppWidgetIds(ComponentName(context, cls))) {
+                manager.updateAppWidget(id, render(context, glass))
+            }
+        }
+    }
 }
+
+const val ACTION_CYCLE_FACE = "com.kidyoh.glass_calendar.CYCLE_FACE"
 
 class GlassWidgetProvider : AppWidgetProvider() {
     override fun onUpdate(context: Context, manager: AppWidgetManager, appWidgetIds: IntArray) {
         for (id in appWidgetIds) manager.updateAppWidget(id, WidgetRenderer.render(context, true))
+    }
+
+    override fun onReceive(context: Context, intent: Intent) {
+        if (intent.action == ACTION_CYCLE_FACE) WidgetRenderer.cycleFace(context) else super.onReceive(context, intent)
     }
 }
 
 class IslandWidgetProvider : AppWidgetProvider() {
     override fun onUpdate(context: Context, manager: AppWidgetManager, appWidgetIds: IntArray) {
         for (id in appWidgetIds) manager.updateAppWidget(id, WidgetRenderer.render(context, false))
+    }
+
+    override fun onReceive(context: Context, intent: Intent) {
+        if (intent.action == ACTION_CYCLE_FACE) WidgetRenderer.cycleFace(context) else super.onReceive(context, intent)
     }
 }

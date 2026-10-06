@@ -91,6 +91,14 @@ const _am = <String, String>{
   'Language': 'ቋንቋ',
   'Could not save to that calendar. Saved on this phone only.':
       'ወደዚያ ቀን መቁጠሪያ ማስቀመጥ አልተቻለም። በዚህ ስልክ ብቻ ተቀምጧል።',
+  // calendar faces
+  'Islamic': 'የሂጅራ',
+  'Orthodox': 'ኦርቶዶክስ',
+  'Week': 'ሳምንት',
+  'today': 'ዛሬ',
+  'tomorrow': 'ነገ',
+  'No fast today': 'ዛሬ ጾም የለም',
+  'Swipe to switch calendars': 'ቀን መቁጠሪያ ለመቀየር ያንሸራትቱ',
   // holidays
   'Holidays': 'በዓላት',
   'Public holiday': 'ሕዝባዊ በዓል',

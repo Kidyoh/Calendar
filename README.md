@@ -46,6 +46,23 @@ Toggle each group in *Settings → Holidays*:
 
 Logic and tests: `lib/core/holidays.dart`, `test/holidays_test.dart`.
 
+## Calendar faces on the widgets
+
+Swipe the glass widget (or the island) between **Gregorian · Ethiopian · Islamic (Hijri) ·
+Orthodox**. Each face shows its own month, year and day numbers plus what matters today:
+week number, evangelist year (ዘመነ ሉቃስ), the Hijri date with the next Ramadan/Eid
+countdown, or today's feast, saint and fast with the next major feast. On the Android
+home screen, tap the ⇄ chip to cycle faces.
+
+## Reminders & notifications
+
+- Reminders with quick times (in 1 hour · this evening · tomorrow 9:00 · pick), repeat
+  daily/weekly, a progress ring, swipe to complete/delete and one-tap snooze.
+- Phone notifications: alerts before events (5–60 min), reminders with **Done** and
+  **Snooze 10 min** actions (work while the app is closed), and a morning briefing with
+  today's events, holiday and fast. Exact alarms are used when allowed; everything is
+  rescheduled automatically and after a reboot.
+
 ## Sync with other apps
 
 Events are read from, and written to, the phone's calendar database via

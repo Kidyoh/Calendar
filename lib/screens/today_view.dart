@@ -10,11 +10,11 @@ import '../core/dates.dart';
 import '../core/theme.dart';
 import '../models/event_item.dart';
 import '../services/calendar_repository.dart';
-import '../widgets/common.dart';
 import '../widgets/holiday_views.dart';
 import '../widgets/islands.dart';
 import '../widgets/motion.dart';
 import 'event_editor.dart';
+import 'reminders_sheet.dart';
 
 class TodayView extends StatelessWidget {
   const TodayView({super.key});
@@ -614,42 +614,87 @@ class _ReminderTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final repo = context.read<CalendarRepository>();
-    return InkWell(
-      borderRadius: BorderRadius.circular(22),
-      onLongPress: () => showEventEditor(context, existing: item),
-      onTap: () => repo.toggleDone(item),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-        child: Row(
-          children: [
-            AnimatedSwitcher(
-              duration: const Duration(milliseconds: 200),
-              child: Icon(
-                item.done ? Icons.check_circle : Icons.radio_button_unchecked,
-                key: ValueKey(item.done),
-                color: item.done ? const Color(0xFF2E7D32) : AppColors.ink,
-              ),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Text(
-                item.title,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  decoration: item.done ? TextDecoration.lineThrough : null,
-                  color: item.done ? AppColors.mute : AppColors.ink,
+    final p = paletteAt(item.colorIndex);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Material(
+        color: item.done ? Colors.white : p.bg.withValues(alpha: .5),
+        borderRadius: BorderRadius.circular(22),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(22),
+          onLongPress: () => showEventEditor(context, existing: item),
+          onTap: () {
+            HapticFeedback.lightImpact();
+            repo.toggleDone(item);
+          },
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+            child: Row(
+              children: [
+                AnimatedSwitcher(
+                  duration: Motion.medium,
+                  transitionBuilder: (c, a) => ScaleTransition(
+                    scale: CurvedAnimation(parent: a, curve: Motion.spring),
+                    child: c,
+                  ),
+                  child: Icon(
+                    item.done
+                        ? Icons.check_circle_rounded
+                        : Icons.radio_button_unchecked_rounded,
+                    key: ValueKey(item.done),
+                    size: 26,
+                    color: item.done ? const Color(0xFF55661B) : p.fg,
+                  ),
                 ),
-              ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: AnimatedDefaultTextStyle(
+                    duration: Motion.medium,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      decoration: item.done ? TextDecoration.lineThrough : null,
+                      color: item.done ? AppColors.mute : AppColors.ink,
+                    ),
+                    child: Text(item.title),
+                  ),
+                ),
+                if (item.repeat != Repeat.none) ...[
+                  Icon(Icons.repeat_rounded, size: 16, color: p.fg),
+                  const SizedBox(width: 6),
+                ],
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 9,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: .75),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.notifications_none_rounded,
+                        size: 14,
+                        color: p.fg,
+                      ),
+                      const SizedBox(width: 3),
+                      Text(
+                        fmtTime(item.start),
+                        style: TextStyle(
+                          color: p.fg,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 12.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-            Text(
-              fmtTime(item.start),
-              style: const TextStyle(
-                color: AppColors.mute,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -667,7 +712,7 @@ class _RemindersPill extends StatelessWidget {
       borderRadius: BorderRadius.circular(30),
       child: InkWell(
         borderRadius: BorderRadius.circular(30),
-        onTap: () => _showReminders(context),
+        onTap: () => showRemindersSheet(context),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 11),
           child: Row(
@@ -700,101 +745,6 @@ class _RemindersPill extends StatelessWidget {
               ],
             ],
           ),
-        ),
-      ),
-    );
-  }
-
-  void _showReminders(BuildContext context) {
-    final repo = context.read<CalendarRepository>();
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      useSafeArea: true,
-      builder: (_) => ChangeNotifierProvider.value(
-        value: repo,
-        child: Consumer<CalendarRepository>(
-          builder: (ctx, repo, _) {
-            final list = repo.reminders;
-            return Material(
-              color: AppColors.paper,
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(36),
-              ),
-              clipBehavior: Clip.antiAlias,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(22, 18, 22, 28),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            t('Reminders'),
-                            style: TextStyle(
-                              fontSize: 26,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
-                        RoundIconButton(
-                          icon: Icons.add,
-                          onTap: () => showEventEditor(ctx, reminder: true),
-                          tooltip: t('Add reminder'),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    if (list.isEmpty)
-                      Padding(
-                        padding: EdgeInsets.symmetric(vertical: 24),
-                        child: Text(
-                          t('Nothing to remember. Tap + to add one.'),
-                          style: TextStyle(color: AppColors.mute),
-                        ),
-                      ),
-                    Flexible(
-                      child: ListView(
-                        shrinkWrap: true,
-                        children: [
-                          for (final r in list)
-                            Dismissible(
-                              key: ValueKey(r.id),
-                              background: Container(
-                                color: Colors.red.withValues(alpha: .15),
-                              ),
-                              onDismissed: (_) => repo.deleteEvent(r),
-                              child: ListTile(
-                                contentPadding: EdgeInsets.zero,
-                                leading: Checkbox(
-                                  shape: const CircleBorder(),
-                                  value: r.done,
-                                  onChanged: (_) => repo.toggleDone(r),
-                                ),
-                                title: Text(
-                                  r.title,
-                                  style: TextStyle(
-                                    decoration: r.done
-                                        ? TextDecoration.lineThrough
-                                        : null,
-                                  ),
-                                ),
-                                subtitle: Text(
-                                  '${weekdayShort(r.start, len: 3)} ${dayNum(r.start)} ${monthShort(r.start)} · ${fmtTime(r.start)}',
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
         ),
       ),
     );

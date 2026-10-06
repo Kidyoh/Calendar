@@ -1,6 +1,7 @@
 import 'package:device_calendar_plus/device_calendar_plus.dart';
 import 'package:flutter/material.dart';
 
+import '../core/dates.dart';
 import '../core/holidays.dart';
 import '../core/locale.dart';
 
@@ -8,6 +9,7 @@ import 'package:provider/provider.dart';
 
 import '../core/theme.dart';
 import '../services/calendar_repository.dart';
+import '../services/notification_service.dart';
 import '../services/widget_sync.dart';
 import '../widgets/holiday_views.dart';
 import '../widgets/common.dart';
@@ -146,6 +148,156 @@ class _SettingsSheet extends StatelessWidget {
                           fontSize: 12.5,
                         ),
                       ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 18),
+            _section(t('Notifications')),
+            Material(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(24),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 6, 8, 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SwitchListTile.adaptive(
+                      contentPadding: EdgeInsets.zero,
+                      secondary: const Icon(Icons.event_available_outlined),
+                      title: Text(
+                        t('Event alerts'),
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      value: repo.notify.events,
+                      onChanged: (v) => repo.setNotify((n) => n.events = v),
+                    ),
+                    if (repo.notify.events)
+                      Padding(
+                        padding: const EdgeInsets.only(left: 56, bottom: 4),
+                        child: Wrap(
+                          spacing: 6,
+                          runSpacing: 6,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          children: [
+                            for (final m in const [5, 10, 15, 30, 60])
+                              ChoiceChip(
+                                label: Text('$m'),
+                                selected: repo.notify.eventLead == m,
+                                onSelected: (_) =>
+                                    repo.setNotify((n) => n.eventLead = m),
+                                selectedColor: AppColors.ink,
+                                labelStyle: TextStyle(
+                                  color: repo.notify.eventLead == m
+                                      ? Colors.white
+                                      : AppColors.ink,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                                showCheckmark: false,
+                                shape: const StadiumBorder(),
+                              ),
+                            Text(
+                              t('minutes before'),
+                              style: const TextStyle(color: AppColors.mute),
+                            ),
+                          ],
+                        ),
+                      ),
+                    SwitchListTile.adaptive(
+                      contentPadding: EdgeInsets.zero,
+                      secondary: const Icon(
+                        Icons.notifications_active_outlined,
+                      ),
+                      title: Text(
+                        t('Reminders'),
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      value: repo.notify.reminders,
+                      onChanged: (v) => repo.setNotify((n) => n.reminders = v),
+                    ),
+                    SwitchListTile.adaptive(
+                      contentPadding: EdgeInsets.zero,
+                      secondary: const Icon(Icons.wb_twilight_rounded),
+                      title: Text(
+                        t('Morning briefing'),
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      subtitle: GestureDetector(
+                        onTap: () async {
+                          final tm = await showTimePicker(
+                            context: context,
+                            initialTime: TimeOfDay(
+                              hour: repo.notify.briefingHour,
+                              minute: repo.notify.briefingMinute,
+                            ),
+                          );
+                          if (tm != null) {
+                            await repo.setNotify(
+                              (n) => n
+                                ..briefingHour = tm.hour
+                                ..briefingMinute = tm.minute,
+                            );
+                          }
+                        },
+                        child: Text(
+                          fmtTime(
+                            DateTime(
+                              2000,
+                              1,
+                              1,
+                              repo.notify.briefingHour,
+                              repo.notify.briefingMinute,
+                            ),
+                          ),
+                          style: const TextStyle(
+                            decoration: TextDecoration.underline,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      value: repo.notify.briefing,
+                      onChanged: (v) => repo.setNotify((n) => n.briefing = v),
+                    ),
+                    SwitchListTile.adaptive(
+                      contentPadding: EdgeInsets.zero,
+                      secondary: const Icon(Icons.church_outlined),
+                      title: Text(
+                        t('Holiday & fast alerts'),
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      value: repo.notify.holidays,
+                      onChanged: (v) => repo.setNotify((n) => n.holidays = v),
+                    ),
+                    const SizedBox(height: 6),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        FilledButton.icon(
+                          style: FilledButton.styleFrom(
+                            backgroundColor: AppColors.ink,
+                          ),
+                          onPressed: () async {
+                            await NotificationService.requestPermission();
+                            await NotificationService.showTest(
+                              repo.eventsOn(DateTime.now()),
+                            );
+                          },
+                          icon: const Icon(
+                            Icons.notifications_rounded,
+                            size: 18,
+                          ),
+                          label: Text(t('Send test notification')),
+                        ),
+                        OutlinedButton(
+                          onPressed: () async {
+                            await NotificationService.requestPermission();
+                            await repo.setNotify((_) {});
+                          },
+                          child: Text(t('Turn on notifications')),
+                        ),
+                      ],
                     ),
                   ],
                 ),

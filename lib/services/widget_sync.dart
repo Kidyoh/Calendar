@@ -1,6 +1,9 @@
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:home_widget/home_widget.dart';
 
+import '../core/calendar_faces.dart';
 import '../core/dates.dart';
 import '../core/locale.dart';
 import '../models/event_item.dart';
@@ -19,8 +22,30 @@ Map<String, String> buildWidgetPayload(
   DateTime now, {
   bool weekStartsMonday = true,
   String holidayToday = '',
+  CalFace face = CalFace.gregorian,
 }) {
   final today = dateOnly(now);
+  // Per-day text of every calendar face (label/title/day/line), so the
+  // home-screen widget can switch faces and stay right for two weeks.
+  final faces = <String, List<List<String>>>{};
+  for (var i = -1; i <= 14; i++) {
+    final d = addDays(today, i);
+    faces[dayKey(d)] = [
+      for (final f in CalFace.values)
+        () {
+          final v = faceView(f, d);
+          return [v.label, v.title, v.day, v.line, v.line2];
+        }(),
+    ];
+  }
+  // Day numbers per face for the week strip: "yyyymmdd:g,e,h,o;…"
+  final faceDays = [
+    for (var i = -8; i <= 21; i++)
+      () {
+        final d = addDays(today, i);
+        return '${dayKey(d)}:${CalFace.values.map((f) => faceDay(f, d)).join(',')}';
+      }(),
+  ].join(';');
   final counts = <String>[];
   for (var i = -7; i <= 21; i++) {
     final day = addDays(today, i);
@@ -55,6 +80,9 @@ Map<String, String> buildWidgetPayload(
     'week_monday': weekStartsMonday ? '1' : '0',
     'eth': AppLocale.ethiopian ? '1' : '0',
     'holiday': holidayToday,
+    'face': '${face.index}',
+    'faces': jsonEncode(faces),
+    'face_days': faceDays,
     'lang': AppLocale.lang,
     'label_new': '＋ ${t('New Event')}',
     'label_none': t('No upcoming events'),
@@ -70,6 +98,7 @@ class WidgetSync {
     List<EventItem> events, {
     bool weekStartsMonday = true,
     String holidayToday = '',
+    CalFace face = CalFace.gregorian,
   }) async {
     if (kIsWeb) return;
     try {
@@ -82,6 +111,7 @@ class WidgetSync {
         DateTime.now(),
         weekStartsMonday: weekStartsMonday,
         holidayToday: holidayToday,
+        face: face,
       );
       for (final e in payload.entries) {
         await HomeWidget.saveWidgetData<String>(e.key, e.value);
@@ -94,6 +124,17 @@ class WidgetSync {
       );
     } catch (_) {
       // Home-screen widgets are best effort (desktop / tests have no host).
+    }
+  }
+
+  /// Face chosen with ⇄ on the home screen (null when unavailable).
+  static Future<int?> readFace() async {
+    if (kIsWeb) return null;
+    try {
+      final v = await HomeWidget.getWidgetData<String>('face');
+      return v == null ? null : int.tryParse(v);
+    } catch (_) {
+      return null;
     }
   }
 

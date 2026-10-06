@@ -4,9 +4,12 @@ import '../core/locale.dart';
 
 import 'package:provider/provider.dart';
 
+import '../core/calendar_faces.dart';
 import '../core/dates.dart';
+import '../core/holidays.dart';
 import '../services/calendar_repository.dart';
 import 'common.dart';
+import 'face_pager.dart';
 
 /// The glassmorphism calendar widget: Weekly / Monthly toggle, settings,
 /// big month + day, a day strip with event dots and quick actions.
@@ -32,7 +35,6 @@ class _GlassWeekWidgetState extends State<GlassWeekWidget> {
   @override
   Widget build(BuildContext context) {
     final repo = context.watch<CalendarRepository>();
-    final sel = repo.selectedDay;
     const white = Colors.white;
 
     return GlassCard(
@@ -63,44 +65,7 @@ class _GlassWeekWidgetState extends State<GlassWeekWidget> {
             ],
           ),
           const SizedBox(height: 18),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 6),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.baseline,
-              textBaseline: TextBaseline.alphabetic,
-              children: [
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () => repo.selectDay(DateTime.now()),
-                    child: FittedBox(
-                      alignment: Alignment.centerLeft,
-                      fit: BoxFit.scaleDown,
-                      child: Text(
-                        monthName(sel),
-                        style: const TextStyle(
-                          color: white,
-                          fontSize: 52,
-                          fontWeight: FontWeight.w300,
-                          letterSpacing: -1.5,
-                          height: 1.1,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                Text(
-                  '${dayNum(sel)}',
-                  style: const TextStyle(
-                    color: white,
-                    fontSize: 52,
-                    fontWeight: FontWeight.w300,
-                    letterSpacing: -1.5,
-                    height: 1.1,
-                  ),
-                ),
-              ],
-            ),
-          ),
+          const FacePager(),
           const SizedBox(height: 10),
           AnimatedSize(
             duration: const Duration(milliseconds: 320),
@@ -198,6 +163,7 @@ class _GlassWeekWidgetState extends State<GlassWeekWidget> {
                 day: addDays(start, i),
                 repo: repo,
                 showLabel: true,
+                face: repo.widgetFace,
               ),
             ),
         ],
@@ -269,7 +235,11 @@ class GlassDayCell extends StatelessWidget {
     required this.repo,
     required this.showLabel,
     this.dim = false,
+    this.face,
   });
+
+  /// Week strip: numbers (and dots) follow the swiped calendar face.
+  final CalFace? face;
 
   final DateTime day;
   final CalendarRepository repo;
@@ -282,6 +252,25 @@ class GlassDayCell extends StatelessWidget {
     final today = sameDay(day, DateTime.now());
     final has = repo.hasEvents(day);
     final alpha = dim ? 0.35 : 1.0;
+    final number = face == null ? dayNum(day) : faceDay(face!, day);
+    // Orthodox face: gold = feast/saint, green = fast. Islamic: teal = holiday.
+    Color dot = Colors.transparent;
+    if (face == CalFace.orthodox) {
+      final hs = holidaysOn(day, saints: true);
+      if (hs.any(
+        (h) => h.kind == HolidayKind.orthodox || h.kind == HolidayKind.saint,
+      )) {
+        dot = const Color(0xFFF5C98A);
+      } else if (fastOn(day) != null) {
+        dot = const Color(0xFFC5CE9B);
+      }
+    } else if (face == CalFace.islamic &&
+        holidaysOn(day).any((h) => h.kind == HolidayKind.islamic)) {
+      dot = const Color(0xFF9ECBC7);
+    }
+    if (dot == Colors.transparent && has) {
+      dot = Colors.white.withValues(alpha: alpha * .75);
+    }
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: () => repo.selectDay(day),
@@ -326,14 +315,28 @@ class GlassDayCell extends StatelessWidget {
                       ]
                     : null,
               ),
-              child: Text(
-                '${dayNum(day)}',
-                style: TextStyle(
-                  color: selected
-                      ? Colors.black
-                      : Colors.white.withValues(alpha: alpha),
-                  fontSize: 17,
-                  fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 280),
+                transitionBuilder: (c, a) => FadeTransition(
+                  opacity: a,
+                  child: SlideTransition(
+                    position: Tween(
+                      begin: const Offset(0, .5),
+                      end: Offset.zero,
+                    ).animate(a),
+                    child: c,
+                  ),
+                ),
+                child: Text(
+                  '$number',
+                  key: ValueKey('$number-${face?.index}'),
+                  style: TextStyle(
+                    color: selected
+                        ? Colors.black
+                        : Colors.white.withValues(alpha: alpha),
+                    fontSize: 17,
+                    fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                  ),
                 ),
               ),
             ),
@@ -341,12 +344,7 @@ class GlassDayCell extends StatelessWidget {
             Container(
               width: 4,
               height: 4,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: has
-                    ? Colors.white.withValues(alpha: alpha * .75)
-                    : Colors.transparent,
-              ),
+              decoration: BoxDecoration(shape: BoxShape.circle, color: dot),
             ),
           ],
         ),

@@ -42,6 +42,26 @@ class WidgetsView extends StatelessWidget {
             ],
           ),
         ),
+        Padding(
+          padding: const EdgeInsets.only(top: 10),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.swipe_rounded, size: 18, color: AppColors.mute),
+              const SizedBox(width: 6),
+              Flexible(
+                child: Text(
+                  t('Swipe to switch calendars'),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: AppColors.mute,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
         const SizedBox(height: 12),
         _pinButton(
           context,

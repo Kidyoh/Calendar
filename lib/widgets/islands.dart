@@ -1,14 +1,18 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../core/locale.dart';
 
 import 'package:provider/provider.dart';
 
+import '../core/calendar_faces.dart';
 import '../core/dates.dart';
 import '../services/calendar_repository.dart';
 import 'common.dart';
+import 'motion.dart';
+import 'face_pager.dart';
 
 /// Rebuilds [builder] every [interval] so clocks and progress stay live.
 class Ticker extends StatefulWidget {
@@ -56,88 +60,150 @@ class IslandWeek extends StatelessWidget {
     final sel = repo.selectedDay;
     final start = startOfWeek(sel, monday: repo.weekStartsMonday);
     final n = repo.eventsOn(sel, includeReminders: false).length;
-    return Island(
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                monthName(sel),
-                style: const TextStyle(
-                  color: Color(0xFF9A9A9A),
-                  fontSize: 17,
-                  fontWeight: FontWeight.w600,
+    final face = repo.widgetFace;
+    final view = faceView(face, sel);
+    // Swipe sideways to switch Gregorian · Ethiopian · Islamic · Orthodox.
+    return GestureDetector(
+      onHorizontalDragEnd: (d) {
+        final v = d.primaryVelocity ?? 0;
+        if (v.abs() > 150) {
+          HapticFeedback.selectionClick();
+          repo.cycleWidgetFace(v < 0 ? 1 : -1);
+        }
+      },
+      child: Island(
+        child: Column(
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Flexible(
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        faceIcon(face),
+                        size: 15,
+                        color: const Color(0xFF9A9A9A),
+                      ),
+                      const SizedBox(width: 6),
+                      Flexible(
+                        child: RollingText(
+                          view.title,
+                          style: const TextStyle(
+                            color: Color(0xFF9A9A9A),
+                            fontSize: 17,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              Text(
-                '$n ${n == 1 ? t('event') : t('events')}',
-                style: const TextStyle(
-                  color: Color(0xFF9A9A9A),
-                  fontSize: 15,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              for (var i = 0; i < 7; i++)
-                Expanded(
-                  child: Center(
-                    child: Text(
-                      weekdayShort(addDays(start, i)),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    for (var i = 0; i < 4; i++)
+                      AnimatedContainer(
+                        duration: Motion.fast,
+                        margin: const EdgeInsets.only(right: 3),
+                        width: i == face.index ? 12 : 4,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(
+                            alpha: i == face.index ? .9 : .3,
+                          ),
+                          borderRadius: BorderRadius.circular(3),
+                        ),
+                      ),
+                    const SizedBox(width: 8),
+                    Text(
+                      '$n ${n == 1 ? t('event') : t('events')}',
                       style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF9A9A9A),
+                        fontSize: 15,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                for (var i = 0; i < 7; i++)
+                  Expanded(
+                    child: Center(
+                      child: Text(
+                        weekdayShort(addDays(start, i)),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ),
                   ),
-                ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              for (var i = 0; i < 7; i++)
-                Expanded(
-                  child: Builder(
-                    builder: (_) {
-                      final d = addDays(start, i);
-                      final s = sameDay(d, sel);
-                      return GestureDetector(
-                        onTap: () => repo.selectDay(d),
-                        child: Center(
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 220),
-                            width: 34,
-                            height: 34,
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: s ? Colors.white : Colors.transparent,
-                            ),
-                            child: Text(
-                              '${dayNum(d)}',
-                              style: TextStyle(
-                                color: s ? Colors.black : Colors.white,
-                                fontSize: 16,
-                                fontWeight: s
-                                    ? FontWeight.w800
-                                    : FontWeight.w600,
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                for (var i = 0; i < 7; i++)
+                  Expanded(
+                    child: Builder(
+                      builder: (_) {
+                        final d = addDays(start, i);
+                        final s = sameDay(d, sel);
+                        return GestureDetector(
+                          onTap: () => repo.selectDay(d),
+                          child: Center(
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 220),
+                              width: 34,
+                              height: 34,
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: s ? Colors.white : Colors.transparent,
+                              ),
+                              child: AnimatedSwitcher(
+                                duration: const Duration(milliseconds: 280),
+                                transitionBuilder: (c, a) => FadeTransition(
+                                  opacity: a,
+                                  child: SlideTransition(
+                                    position: Tween(
+                                      begin: const Offset(0, .5),
+                                      end: Offset.zero,
+                                    ).animate(a),
+                                    child: c,
+                                  ),
+                                ),
+                                child: Text(
+                                  '${faceDay(face, d)}',
+                                  key: ValueKey(
+                                    '${faceDay(face, d)}-${face.index}',
+                                  ),
+                                  style: TextStyle(
+                                    color: s ? Colors.black : Colors.white,
+                                    fontSize: 16,
+                                    fontWeight: s
+                                        ? FontWeight.w800
+                                        : FontWeight.w600,
+                                  ),
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                      );
-                    },
+                        );
+                      },
+                    ),
                   ),
-                ),
-            ],
-          ),
-        ],
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

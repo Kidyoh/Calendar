@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:device_calendar_plus/device_calendar_plus.dart';
@@ -5,10 +6,12 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../core/calendar_faces.dart';
 import '../core/dates.dart';
 import '../core/holidays.dart';
 import '../core/locale.dart';
 import '../models/event_item.dart';
+import 'notification_service.dart';
 import 'widget_sync.dart';
 
 /// A world-clock choice for the second clock on the Today screen.
@@ -56,6 +59,13 @@ class CalendarRepository extends ChangeNotifier {
   bool showOrthodox = true;
   bool showIslamic = true;
   bool showSaints = false;
+
+  /// Which calendar the widgets show (swiped in-app, ⇄ on the home screen).
+  CalFace widgetFace = CalFace.gregorian;
+
+  /// Notification preferences (event alerts, reminders, morning briefing).
+  final notify = NotifySettings();
+  Timer? _notifyDebounce;
   String get language => AppLocale.lang;
   bool get ethiopian => AppLocale.ethiopian;
   String? defaultCalendarId;
@@ -92,6 +102,10 @@ class CalendarRepository extends ChangeNotifier {
     showOrthodox = _prefs!.getBool('hol_orthodox') ?? true;
     showIslamic = _prefs!.getBool('hol_islamic') ?? true;
     showSaints = _prefs!.getBool('hol_saints') ?? false;
+    final savedFace = _prefs!.getInt('widget_face');
+    widgetFace = savedFace != null && savedFace < CalFace.values.length
+        ? CalFace.values[savedFace]
+        : (AppLocale.ethiopian ? CalFace.ethiopian : CalFace.gregorian);
     // First run on an Amharic phone defaults to Amharic + Ethiopian calendar.
     final amPhone = PlatformDispatcher.instance.locale.languageCode == 'am';
     AppLocale.lang = _prefs!.getString('language') ?? (amPhone ? 'am' : 'en');
@@ -101,8 +115,33 @@ class CalendarRepository extends ChangeNotifier {
     try {
       localZoneId = (await FlutterTimezone.getLocalTimezone()).identifier;
     } catch (_) {}
+    notify
+      ..events = _prefs!.getBool('n_events') ?? true
+      ..eventLead = _prefs!.getInt('n_lead') ?? 10
+      ..reminders = _prefs!.getBool('n_reminders') ?? true
+      ..briefing = _prefs!.getBool('n_briefing') ?? true
+      ..briefingHour = _prefs!.getInt('n_brief_h') ?? 7
+      ..briefingMinute = _prefs!.getInt('n_brief_m') ?? 0
+      ..holidays = _prefs!.getBool('n_holidays') ?? true;
+    NotificationService.onRemindersChanged = () => reloadLocal();
+    await NotificationService.init();
+    await syncFaceFromHomeWidget(notify: false);
     await refreshPermission();
     await reload();
+  }
+
+  /// Adopt the face picked with ⇄ on a home-screen widget.
+  Future<void> syncFaceFromHomeWidget({bool notify = true}) async {
+    final f = await WidgetSync.readFace();
+    if (f == null ||
+        f < 0 ||
+        f >= CalFace.values.length ||
+        f == widgetFace.index) {
+      return;
+    }
+    widgetFace = CalFace.values[f];
+    await _prefs?.setInt('widget_face', f);
+    if (notify) notifyListeners();
   }
 
   Future<void> refreshPermission() async {
@@ -284,7 +323,12 @@ class CalendarRepository extends ChangeNotifier {
     return warning;
   }
 
-  Future<void> addReminder(String title, DateTime when) async {
+  Future<void> addReminder(
+    String title,
+    DateTime when, {
+    Repeat repeat = Repeat.none,
+    int colorIndex = 4,
+  }) async {
     _local.add(
       EventItem(
         id: 'r${DateTime.now().microsecondsSinceEpoch}',
@@ -292,10 +336,34 @@ class CalendarRepository extends ChangeNotifier {
         start: when,
         end: when,
         isReminder: true,
-        colorIndex: 4,
+        colorIndex: colorIndex,
+        repeat: repeat,
       ),
     );
     await _persist();
+  }
+
+  Future<void> snoozeReminder(EventItem r, Duration by) async {
+    final i = _local.indexWhere((x) => x.id == r.id);
+    if (i < 0) return;
+    final base = r.start.isBefore(DateTime.now()) ? DateTime.now() : r.start;
+    final when = base.add(by);
+    _local[i] = r.copyWith(start: when, end: when, done: false);
+    await _persist();
+  }
+
+  /// Re-read reminders saved by a notification action (Done / Snooze).
+  Future<void> reloadLocal() async {
+    await _prefs?.reload();
+    final raw = _prefs?.getString('local_events');
+    if (raw == null) return;
+    try {
+      _local = (jsonDecode(raw) as List)
+          .map((e) => EventItem.fromJson(e as Map<String, dynamic>))
+          .toList();
+      notifyListeners();
+      _pushWidgets();
+    } catch (_) {}
   }
 
   Future<String?> updateEvent(
@@ -306,6 +374,7 @@ class CalendarRepository extends ChangeNotifier {
     required bool allDay,
     String? location,
     int? colorIndex,
+    Repeat? repeat,
   }) async {
     if (old.source == EventSource.device) {
       try {
@@ -331,6 +400,7 @@ class CalendarRepository extends ChangeNotifier {
         allDay: allDay,
         location: location,
         colorIndex: colorIndex,
+        repeat: repeat,
       );
       await _persist();
     }
@@ -355,7 +425,18 @@ class CalendarRepository extends ChangeNotifier {
   Future<void> toggleDone(EventItem e) async {
     final i = _local.indexWhere((x) => x.id == e.id);
     if (i < 0) return;
-    _local[i] = e.copyWith(done: !e.done);
+    if (!e.done && e.repeat != Repeat.none) {
+      // Repeating: completing it moves it to the next occurrence.
+      // Next occurrence after the one being completed (or after now, if it was overdue).
+      final now = DateTime.now();
+      final next = NotificationService.nextOccurrence(
+        e,
+        e.start.isAfter(now) ? e.start : now,
+      );
+      _local[i] = e.copyWith(start: next, end: next);
+    } else {
+      _local[i] = e.copyWith(done: !e.done);
+    }
     await _persist();
   }
 
@@ -424,10 +505,50 @@ class CalendarRepository extends ChangeNotifier {
     _pushWidgets();
   }
 
-  void _pushWidgets() => WidgetSync.push(
+  /// Notification settings changed.
+  Future<void> setNotify(void Function(NotifySettings n) change) async {
+    change(notify);
+    await _prefs?.setBool('n_events', notify.events);
+    await _prefs?.setInt('n_lead', notify.eventLead);
+    await _prefs?.setBool('n_reminders', notify.reminders);
+    await _prefs?.setBool('n_briefing', notify.briefing);
+    await _prefs?.setInt('n_brief_h', notify.briefingHour);
+    await _prefs?.setInt('n_brief_m', notify.briefingMinute);
+    await _prefs?.setBool('n_holidays', notify.holidays);
+    notifyListeners();
+    _scheduleNotifications();
+  }
+
+  void _scheduleNotifications() {
+    _notifyDebounce?.cancel();
+    _notifyDebounce = Timer(const Duration(milliseconds: 700), () {
+      NotificationService.rescheduleAll(allEvents, notify);
+    });
+  }
+
+  void _pushWidgets() {
+    _scheduleNotifications();
+    _pushWidgetsNow();
+  }
+
+  void _pushWidgetsNow() => WidgetSync.push(
     allEvents,
     weekStartsMonday: weekStartsMonday,
+    face: widgetFace,
     holidayToday: holidaysFor(DateTime.now()).map((h) => h.name).join(' · '),
+  );
+
+  Future<void> setWidgetFace(CalFace f) async {
+    if (f == widgetFace) return;
+    widgetFace = f;
+    await _prefs?.setInt('widget_face', f.index);
+    notifyListeners();
+    _pushWidgets();
+  }
+
+  /// Swipe helper: next (+1) or previous (-1) face, wrapping around.
+  void cycleWidgetFace(int dir) => setWidgetFace(
+    CalFace.values[(widgetFace.index + dir) % CalFace.values.length],
   );
 
   Future<void> completeOnboarding() async {

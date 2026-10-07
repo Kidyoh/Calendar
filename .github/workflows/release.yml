@@ -1,8 +1,9 @@
-# Publishes the APKs in release/ as a GitHub Release when a v* tag is pushed.
+# Publishes the APKs in release/ as a GitHub Release (tag from release/VERSION)
+# whenever this branch is pushed.
 name: Publish release
 on:
   push:
-    tags: ['v*']
+    branches: [release-assets]
 permissions:
   contents: write
 jobs:
@@ -10,8 +11,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - id: v
+        run: echo "tag=$(cat release/VERSION)" >> "$GITHUB_OUTPUT"
       - uses: softprops/action-gh-release@v2
         with:
-          name: Glass Calendar ${{ github.ref_name }}
+          tag_name: ${{ steps.v.outputs.tag }}
+          target_commitish: ${{ github.sha }}
+          name: Glass Calendar ${{ steps.v.outputs.tag }}
           body_path: release/NOTES.md
           files: release/*.apk
+          make_latest: true

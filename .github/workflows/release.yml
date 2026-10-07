@@ -1,0 +1,17 @@
+# Publishes the APKs in release/ as a GitHub Release when a v* tag is pushed.
+name: Publish release
+on:
+  push:
+    tags: ['v*']
+permissions:
+  contents: write
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: softprops/action-gh-release@v2
+        with:
+          name: Glass Calendar ${{ github.ref_name }}
+          body_path: release/NOTES.md
+          files: release/*.apk
